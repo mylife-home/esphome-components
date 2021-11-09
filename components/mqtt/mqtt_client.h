@@ -1,14 +1,10 @@
 #pragma once
 
-#include "esphome/core/defines.h"
-
-#ifdef USE_MQTT
-
 #include "esphome/core/component.h"
+#include "esphome/core/defines.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/log.h"
 #include "esphome/components/json/json_util.h"
-#include "esphome/components/network/ip_address.h"
 #include <AsyncMqttClient.h>
 #include "lwip/ip_addr.h"
 
@@ -230,7 +226,7 @@ class MQTTClientComponent : public Component {
   void start_connect_();
   void start_dnslookup_();
   void check_dnslookup_();
-#if defined(USE_ESP8266) && LWIP_VERSION_MAJOR == 1
+#if defined(ARDUINO_ARCH_ESP8266) && LWIP_VERSION_MAJOR == 1
   static void dns_found_callback(const char *name, ip_addr_t *ipaddr, void *callback_arg);
 #else
   static void dns_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg);
@@ -269,7 +265,7 @@ class MQTTClientComponent : public Component {
   std::vector<MQTTSubscription> subscriptions_;
   AsyncMqttClient mqtt_client_;
   MQTTClientState state_{MQTT_CLIENT_DISCONNECTED};
-  network::IPAddress ip_;
+  IPAddress ip_;
   bool dns_resolved_{false};
   bool dns_resolve_error_{false};
   std::vector<MQTTComponent *> children_;
@@ -356,5 +352,3 @@ template<typename... Ts> class MQTTConnectedCondition : public Condition<Ts...> 
 
 }  // namespace mqtt
 }  // namespace esphome
-
-#endif  // USE_MQTT

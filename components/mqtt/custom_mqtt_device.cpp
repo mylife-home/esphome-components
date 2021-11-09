@@ -1,7 +1,4 @@
 #include "custom_mqtt_device.h"
-
-#ifdef USE_MQTT
-
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -31,5 +28,3 @@ bool CustomMQTTDevice::is_connected() { return global_mqtt_client != nullptr && 
 
 }  // namespace mqtt
 }  // namespace esphome
-
-#endif  // USE_MQTT

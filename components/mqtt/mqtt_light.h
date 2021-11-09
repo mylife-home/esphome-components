@@ -2,7 +2,6 @@
 
 #include "esphome/core/defines.h"
 
-#ifdef USE_MQTT
 #ifdef USE_LIGHT
 
 #include "mqtt_component.h"
@@ -25,9 +24,11 @@ class MQTTJSONLightComponent : public mqtt::MQTTComponent {
 
   bool send_initial_state() override;
 
+  bool is_internal() override;
+
  protected:
+  std::string friendly_name() const override;
   std::string component_type() const override;
-  const EntityBase *get_entity() const override;
 
   bool publish_state_();
 
@@ -38,4 +39,3 @@ class MQTTJSONLightComponent : public mqtt::MQTTComponent {
 }  // namespace esphome
 
 #endif
-#endif  // USE_MQTT

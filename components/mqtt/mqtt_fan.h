@@ -2,7 +2,6 @@
 
 #include "esphome/core/defines.h"
 
-#ifdef USE_MQTT
 #ifdef USE_FAN
 
 #include "esphome/components/fan/fan_state.h"
@@ -17,8 +16,6 @@ class MQTTFanComponent : public mqtt::MQTTComponent {
 
   MQTT_COMPONENT_CUSTOM_TOPIC(oscillation, command)
   MQTT_COMPONENT_CUSTOM_TOPIC(oscillation, state)
-  MQTT_COMPONENT_CUSTOM_TOPIC(speed_level, command)
-  MQTT_COMPONENT_CUSTOM_TOPIC(speed_level, state)
   MQTT_COMPONENT_CUSTOM_TOPIC(speed, command)
   MQTT_COMPONENT_CUSTOM_TOPIC(speed, state)
 
@@ -28,9 +25,6 @@ class MQTTFanComponent : public mqtt::MQTTComponent {
   // (In most use cases you won't need these)
   /// Setup the fan subscriptions and discovery.
   void setup() override;
-
-  void dump_config() override;
-
   /// Send the full current state to MQTT.
   bool send_initial_state() override;
   bool publish_state();
@@ -39,8 +33,10 @@ class MQTTFanComponent : public mqtt::MQTTComponent {
 
   fan::FanState *get_state() const;
 
+  bool is_internal() override;
+
  protected:
-  const EntityBase *get_entity() const override;
+  std::string friendly_name() const override;
 
   fan::FanState *state_;
 };
@@ -49,4 +45,3 @@ class MQTTFanComponent : public mqtt::MQTTComponent {
 }  // namespace esphome
 
 #endif
-#endif  // USE_MQTT
