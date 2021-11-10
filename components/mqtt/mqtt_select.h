@@ -3,21 +3,21 @@
 #include "esphome/core/defines.h"
 
 #ifdef USE_MQTT
-#ifdef USE_NUMBER
+#ifdef USE_SELECT
 
-#include "esphome/components/number/number.h"
+#include "esphome/components/select/select.h"
 #include "mqtt_component.h"
 
 namespace esphome {
 namespace mqtt {
 
-class MQTTNumberComponent : public mqtt::MQTTComponent {
+class MQTTSelectComponent : public mqtt::MQTTComponent {
  public:
-  /** Construct this MQTTNumberComponent instance with the provided friendly_name and number
+  /** Construct this MQTTSelectComponent instance with the provided friendly_name and select
    *
-   * @param number The number.
+   * @param select The select.
    */
-  explicit MQTTNumberComponent(number::Number *number);
+  explicit MQTTSelectComponent(select::Select *select);
 
   // ========== INTERNAL METHODS ==========
   // (In most use cases you won't need these)
@@ -29,14 +29,14 @@ class MQTTNumberComponent : public mqtt::MQTTComponent {
 
   bool send_initial_state() override;
 
-  bool publish_state(float value);
+  bool publish_state(const std::string &value);
 
  protected:
-  /// Override for MQTTComponent, returns "number".
+  /// Override for MQTTComponent, returns "select".
   std::string component_type() const override;
   const EntityBase *get_entity() const override;
 
-  number::Number *number_;
+  select::Select *select_;
 };
 
 }  // namespace mqtt
