@@ -65,17 +65,6 @@ void MylifeClientComponent::dump_config() {
                 this->ip_.str().c_str());
   ESP_LOGCONFIG(TAG, "  Username: " LOG_SECRET("'%s'"), this->credentials_.username.c_str());
   ESP_LOGCONFIG(TAG, "  Client ID: " LOG_SECRET("'%s'"), this->credentials_.client_id.c_str());
-  if (!this->discovery_info_.prefix.empty()) {
-    ESP_LOGCONFIG(TAG, "  Discovery prefix: '%s'", this->discovery_info_.prefix.c_str());
-    ESP_LOGCONFIG(TAG, "  Discovery retain: %s", YESNO(this->discovery_info_.retain));
-  }
-  ESP_LOGCONFIG(TAG, "  Topic Prefix: '%s'", this->topic_prefix_.c_str());
-  if (!this->log_message_.topic.empty()) {
-    ESP_LOGCONFIG(TAG, "  Log Topic: '%s'", this->log_message_.topic.c_str());
-  }
-  if (!this->availability_.topic.empty()) {
-    ESP_LOGCONFIG(TAG, "  Availability: '%s'", this->availability_.topic.c_str());
-  }
 }
 
 bool MylifeClientComponent::can_proceed() { return this->is_connected(); }
@@ -221,8 +210,9 @@ void MylifeClientComponent::check_connected() {
 
   this->resubscribe_subscriptions_();
 
-  for (MQTTComponent *component : this->children_)
-    component->schedule_resend_state();
+  // TODO
+  //for (MQTTComponent *component : this->children_)
+  //  component->schedule_resend_state();
 }
 
 void MylifeClientComponent::loop() {
@@ -320,7 +310,7 @@ bool MylifeClientComponent::subscribe_(const char *topic, uint8_t qos) {
   return ret != 0;
 }
 
-void MylifeClientComponent::resubscribe_subscription_(MQTTSubscription *sub) {
+void MylifeClientComponent::resubscribe_subscription_(Subscription *sub) {
   if (sub->subscribed)
     return;
 
@@ -340,7 +330,7 @@ void MylifeClientComponent::resubscribe_subscriptions_() {
 }
 
 void MylifeClientComponent::subscribe(const std::string &topic, subscription_callback_t callback, uint8_t qos) {
-  MQTTSubscription subscription{
+  Subscription subscription{
       .topic = topic,
       .qos = qos,
       .callback = std::move(callback),
@@ -403,7 +393,7 @@ bool MylifeClientComponent::publish(const std::string &topic, const char *payloa
   return ret != 0;
 }
 
-bool MylifeClientComponent::publish(const MQTTMessage &message) {
+bool MylifeClientComponent::publish(const Message &message) {
   return this->publish(message.topic, message.payload, message.qos, message.retain);
 }
 
@@ -491,7 +481,7 @@ void MylifeClientComponent::on_shutdown() {
   this->mqtt_client_.disconnect(true);
 }
 
-MylifeClientComponent *globalmylife_client = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+MylifeClientComponent *global_mylife_client = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 }  // namespace mylife
 }  // namespace esphome

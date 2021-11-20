@@ -145,16 +145,6 @@ class MylifeClientComponent : public Component {
   Message birth_message_;
   bool sent_birth_message_{false};
   Message shutdown_message_;
-  /// Caches availability.
-  Availability availability_{};
-  /// The discovery info options for Home Assistant. Undefined optional means
-  /// default and empty prefix means disabled.
-  MQTTDiscoveryInfo discovery_info_{
-      .prefix = "homeassistant",
-      .retain = true,
-      .clean = false,
-  };
-  std::string topic_prefix_{};
   Message log_message_;
   std::string payload_buffer_;
   int log_level_{ESPHOME_LOG_LEVEL};
@@ -165,7 +155,6 @@ class MylifeClientComponent : public Component {
   network::IPAddress ip_;
   bool dns_resolved_{false};
   bool dns_resolve_error_{false};
-  std::vector<MQTTComponent *> children_;
   uint32_t reboot_timeout_{300000};
   uint32_t connect_begin_;
   uint32_t last_connected_{0};
