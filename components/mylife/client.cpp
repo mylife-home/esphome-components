@@ -20,7 +20,7 @@ static const char *const TAG = "mylife";
 
 MylifeClientComponent::MylifeClientComponent() {
   global_mylife_client = this;
-  this->credentials_.client_id = App.get_name() + "-" + get_mac_address();
+  this->credentials_.client_id = App.get_name() + "-" + get_mac_address() + "-mylife";
 }
 
 // Connection
@@ -48,8 +48,9 @@ void MylifeClientComponent::setup() {
   if (logger::global_logger != nullptr) {
     logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
       if (level <= this->log_level_ && this->is_connected()) {
-        this->publish(this->log_message_.topic, message, strlen(message), this->log_message_.qos,
-                      this->log_message_.retain);
+        int qos = 0;
+        bool retain = true;
+        //this->publish(this->log_message_.topic, message, strlen(message), qos, retain);
       }
     });
   }
