@@ -21,8 +21,6 @@ public:
   virtual const std::string &get_component_id() const = 0;
 
 protected:
-  virtual void publish_initial_state() = 0;
-
   MylifeClientComponent *client() const {
     return client_;
   }
