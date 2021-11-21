@@ -45,70 +45,70 @@ static const char *const TAG = "mylife";
 
 #ifdef USE_BINARY_SENSOR
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, binary_sensor::BinarySensor *component) {
-  ESP_LOGI(TAG, "Skipping unsupported controller type : BinarySensor");
+  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'BinarySensor'", component->get_name().c_str());
   return nullptr;
 }
 #endif
 
 #ifdef USE_SENSOR
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, sensor::Sensor *component) {
-  ESP_LOGI(TAG, "Skipping unsupported controller type : Sensor");
+  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Sensor'", component->get_name().c_str());
   return nullptr;
 }
 #endif
 
 #ifdef USE_SWITCH
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, switch_::Switch *component) {
-  ESP_LOGI(TAG, "Skipping unsupported controller type : Switch");
+  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Switch'", component->get_name().c_str());
   return nullptr;
 }
 #endif
 
 #ifdef USE_TEXT_SENSOR
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, text_sensor::TextSensor *component) {
-  ESP_LOGI(TAG, "Skipping unsupported controller type : TextSensor");
+  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'TextSensor'", component->get_name().c_str());
   return nullptr;
 }
 #endif
 
 #ifdef USE_FAN
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, fan::FanState *component) {
-  ESP_LOGI(TAG, "Skipping unsupported controller type : Fan");
+  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Fan'", component->get_name().c_str());
   return nullptr;
 }
 #endif
 
 #ifdef USE_CLIMATE
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, climate::Climate *component) {
-  ESP_LOGI(TAG, "Skipping unsupported controller type : Climate");
+  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Climate'", component->get_name().c_str());
   return nullptr;
 }
 #endif
 
 #ifdef USE_LIGHT
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, light::LightState *component) {
-  ESP_LOGI(TAG, "Skipping unsupported controller type : Light");
+  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Light'", component->get_name().c_str());
   return nullptr;
 }
 #endif
 
 #ifdef USE_COVER
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, cover::Cover *component) {
-  ESP_LOGI(TAG, "Skipping unsupported controller type : Cover");
+  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Cover'", component->get_name().c_str());
   return nullptr;
 }
 #endif
 
 #ifdef USE_NUMBER
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, number::Number *component) {
-  ESP_LOGI(TAG, "Skipping unsupported controller type : Number");
+  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Number'", component->get_name().c_str());
   return nullptr;
 }
 #endif
 
 #ifdef USE_SELECT
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, select::Select *component) {
-  ESP_LOGI(TAG, "Skipping unsupported controller type : Select");
+  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Select'", component->get_name().c_str());
   return nullptr;
 }
 #endif
