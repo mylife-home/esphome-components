@@ -20,9 +20,9 @@ public:
   virtual const PluginDefinition *get_plugin_metadata() const = 0; // Note: same pointer = same plugin
   virtual const std::string &get_component_id() const = 0;
 
+protected:
   virtual void publish_initial_state() = 0;
 
-protected:
   MylifeClientComponent *client() const {
     return client_;
   }
