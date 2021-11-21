@@ -58,6 +58,12 @@ class MylifeClientComponent : public Component {
  public:
   MylifeClientComponent();
 
+  /** Add a callback to be notified of online changes.
+   *
+   * @param callback The void(bool) callback.
+   */
+  void add_on_online_callback(std::function<void(bool)> &&callback);
+
   /// Set the keep alive time in seconds, every 0.7*keep_alive a ping will be sent.
   void set_keep_alive(uint16_t keep_alive_s);
 
@@ -159,6 +165,7 @@ class MylifeClientComponent : public Component {
   uint32_t connect_begin_;
   uint32_t last_connected_{0};
   optional<AsyncMqttClientDisconnectReason> disconnect_reason_{};
+  CallbackManager<void(bool)> online_callback_{};
 };
 
 }  // namespace mylife

@@ -22,6 +22,10 @@ MylifeClientComponent::MylifeClientComponent() {
   this->credentials_.client_id = App.get_name() + "-" + get_mac_address() + "-mylife";
 }
 
+void MylifeClientComponent::add_on_online_callback(std::function<void(bool)> &&callback) {
+  this->online_callback_.add(std::move(callback));
+}
+
 // Connection
 void MylifeClientComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up MQTT...");
@@ -210,9 +214,7 @@ void MylifeClientComponent::check_connected() {
 
   this->resubscribe_subscriptions_();
 
-  // TODO
-  //for (MQTTComponent *component : this->children_)
-  //  component->schedule_resend_state();
+  online_callback_.call(true);
 }
 
 void MylifeClientComponent::loop() {
@@ -252,6 +254,7 @@ void MylifeClientComponent::loop() {
     }
     ESP_LOGW(TAG, "MQTT Disconnected: %s.", LOG_STR_ARG(reason_s));
     this->disconnect_reason_.reset();
+    online_callback_.call(falase);
   }
 
   const uint32_t now = millis();
