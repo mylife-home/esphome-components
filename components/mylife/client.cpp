@@ -13,6 +13,8 @@
 #include "lwip/err.h"
 #include "lwip/dns.h"
 
+#include "controller.h"
+
 namespace esphome {
 namespace mylife {
 
@@ -28,7 +30,11 @@ void MylifeClientComponent::add_on_online_callback(std::function<void(bool)> &&c
 
 // Connection
 void MylifeClientComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up MQTT...");
+  ESP_LOGCONFIG(TAG, "Setting up Mylife...");
+
+  // TODO: look and register controllers
+
+
   this->mqtt_client_.onMessage([this](char const *topic, char *payload, AsyncMqttClientMessageProperties properties,
                                       size_t len, size_t index, size_t total) {
     if (index == 0)
@@ -64,11 +70,16 @@ void MylifeClientComponent::setup() {
 }
 
 void MylifeClientComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "MQTT:");
+  ESP_LOGCONFIG(TAG, "Mylife:");
   ESP_LOGCONFIG(TAG, "  Server Address: %s:%u (%s)", this->credentials_.address.c_str(), this->credentials_.port,
                 this->ip_.str().c_str());
   ESP_LOGCONFIG(TAG, "  Username: " LOG_SECRET("'%s'"), this->credentials_.username.c_str());
   ESP_LOGCONFIG(TAG, "  Client ID: " LOG_SECRET("'%s'"), this->credentials_.client_id.c_str());
+  ESP_LOGCONFIG(TAG, "  Components:");
+
+  for (const auto &controller : controllers_) {
+    ESP_LOGCONFIG(TAG, "    %s (plugin: %s)", controller->get_component_id().c_str(), controller->get_plugin_metadata()->id.c_str());
+  }
 }
 
 bool MylifeClientComponent::can_proceed() { return this->is_connected(); }
@@ -254,7 +265,7 @@ void MylifeClientComponent::loop() {
     }
     ESP_LOGW(TAG, "MQTT Disconnected: %s.", LOG_STR_ARG(reason_s));
     this->disconnect_reason_.reset();
-    online_callback_.call(falase);
+    online_callback_.call(false);
   }
 
   const uint32_t now = millis();

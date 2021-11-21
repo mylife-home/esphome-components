@@ -15,6 +15,8 @@
 namespace esphome {
 namespace mylife {
 
+class MylifeController;
+
 /** Callback for MQTT subscriptions.
  *
  * First parameter is the topic, the second one is the payload.
@@ -166,6 +168,8 @@ class MylifeClientComponent : public Component {
   uint32_t last_connected_{0};
   optional<AsyncMqttClientDisconnectReason> disconnect_reason_{};
   CallbackManager<void(bool)> online_callback_{};
+
+  std::vector<std::unique_ptr<MylifeController>> controllers_;
 };
 
 }  // namespace mylife

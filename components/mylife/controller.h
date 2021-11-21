@@ -12,18 +12,13 @@ struct PluginDefinition {
   std::string metadata;
 };
 
-struct ComponentDefinition {
-  std::string id;
-  std::string plugin_id;
-};
-
 class MylifeController {
 public:
   explicit MylifeController(MylifeClientComponent *client);
   virtual ~MylifeController() = default;
 
   virtual const PluginDefinition *get_plugin_metadata() const = 0; // Note: same pointer = same plugin
-  virtual const ComponentDefinition *get_component_metadata() const = 0;
+  virtual const std::string &get_component_id() const = 0;
 
   virtual void publish_initial_state() = 0;
 
