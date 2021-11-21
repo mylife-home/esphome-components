@@ -14,6 +14,7 @@
 #include "lwip/dns.h"
 
 #include "controller.h"
+#include "controller_factory.h"
 
 namespace esphome {
 namespace mylife {
@@ -32,8 +33,7 @@ void MylifeClientComponent::add_on_online_callback(std::function<void(bool)> &&c
 void MylifeClientComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Mylife...");
 
-  // TODO: look and register controllers
-
+  controllers_ = MylifeControllerFactory::build(this);
 
   this->mqtt_client_.onMessage([this](char const *topic, char *payload, AsyncMqttClientMessageProperties properties,
                                       size_t len, size_t index, size_t total) {

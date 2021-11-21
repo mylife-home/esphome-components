@@ -11,6 +11,8 @@
 #include "esphome/components/network/ip_address.h"
 #include <AsyncMqttClient.h>
 #include "lwip/ip_addr.h"
+#include <vector>
+#include <memory>
 
 namespace esphome {
 namespace mylife {
