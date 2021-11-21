@@ -12,7 +12,7 @@ namespace mylife {
 
 class MylifeRgbLight : public MylifeController {
 public:
-  MylifeRgbLight(MylifeClientComponent *client, light::LightState *target);
+  explicit MylifeRgbLight(MylifeClientComponent *client, light::LightState *target);
   virtual ~MylifeRgbLight() = default;
 
   virtual const PluginDefinition *get_plugin_metadata() const override;

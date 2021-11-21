@@ -14,7 +14,7 @@ struct PluginDefinition {
 
 class MylifeController {
 public:
-  explicit MylifeController(MylifeClientComponent *client);
+  explicit MylifeController(MylifeClientComponent *client, EntityBase *target);
   virtual ~MylifeController() = default;
 
   virtual const PluginDefinition *get_plugin_metadata() const = 0; // Note: same pointer = same plugin
