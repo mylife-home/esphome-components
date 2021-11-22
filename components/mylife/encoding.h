@@ -19,6 +19,18 @@ namespace mylife {
 
     static uint8_t read_uint8(const std::string &buffer);
     static std::string write_uint8(uint8_t value);
+
+    static int8_t read_int8(const std::string &buffer);
+    static std::string write_int8(int8_t value);
+
+    static uint32_t read_uint32(const std::string &buffer);
+    static std::string write_uint32(uint32_t value);
+
+    static int32_t read_int32(const std::string &buffer);
+    static std::string write_int32(int32_t value);
+
+    static float read_float(const std::string &buffer);
+    static std::string write_float(float value);
   };
 
 }  // namespace mylife

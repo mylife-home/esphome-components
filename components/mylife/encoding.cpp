@@ -29,19 +29,70 @@ namespace mylife {
     return write_uint8(value ? 1 : 0);
   }
 
+  namespace {
+    template<typename ValueType>
+    union exchange {
+      ValueType value;
+      char raw[sizeof(ValueType)];
+
+      static std::string write(ValueType value) {
+        exchange<ValueType> ex;
+        ex.value = value;
+        return std::string(ex.raw, sizeof(ValueType));
+      }
+
+      static ValueType read(const std::string &buffer) {
+        if (buffer.size() != sizeof(ValueType)) {
+          wrong_buffer();
+          return 0;
+        }
+
+        exchange<ValueType> ex;
+        memcpy(ex.raw, buffer.data(), sizeof(ValueType));
+        return ex.value;
+      }
+    };
+  }
+
   uint8_t Encoding::read_uint8(const std::string &buffer) {
-    if (buffer.size() != 1) {
-      wrong_buffer();
-      return 0;
-    }
-    
-    return static_cast<uint8_t>(buffer[0]);
+    return exchange<uint8_t>::read(buffer);
   }
 
   std::string Encoding::write_uint8(uint8_t value) {
-    return std::string(static_cast<char>(value), 1);
+    return exchange<uint8_t>::write(value);
   }
 
+  int8_t Encoding::read_int8(const std::string &buffer) {
+    return exchange<int8_t>::read(buffer);
+  }
+
+  std::string Encoding::write_int8(int8_t value) {
+    return exchange<int8_t>::write(value);
+  }
+
+  uint32_t Encoding::read_uint32(const std::string &buffer) {
+    return exchange<uint32_t>::read(buffer);
+  }
+
+  std::string Encoding::write_uint32(uint32_t value) {
+    return exchange<uint32_t>::write(value);
+  }
+
+  int32_t Encoding::read_int32(const std::string &buffer) {
+    return exchange<int32_t>::read(buffer);
+  }
+
+  std::string Encoding::write_int32(int32_t value) {
+    return exchange<int32_t>::write(value);
+  }
+
+  float Encoding::read_float(const std::string &buffer) {
+    return exchange<float>::read(buffer);
+  }
+
+  std::string Encoding::write_float(float value) {
+    return exchange<float>::write(value);
+  }
 }  // namespace mylife
 }  // namespace esphome
 
