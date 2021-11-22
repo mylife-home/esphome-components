@@ -294,11 +294,9 @@ void MylifeClientComponent::loop() {
     online_callback_.call(false);
   }
 
-  const uint32_t now = millis();
-
   switch (this->state_) {
     case MQTT_CLIENT_DISCONNECTED:
-      if (now - this->connect_begin_ > 5000) {
+      if (millis() - this->connect_begin_ > 5000) {
         this->start_dnslookup_();
       }
       break;
