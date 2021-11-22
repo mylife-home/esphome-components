@@ -19,7 +19,7 @@ MylifeController::MylifeController(MylifeClientComponent *client, EntityBase *ta
   client_->add_on_online_callback([this](bool online) {
     if (online) {
       this->publish_metadata();
-      this->publish_status();
+      this->publish_states();
     }
   });
 }

@@ -19,7 +19,18 @@ public:
   virtual const PluginDefinition *get_plugin_metadata() const override;
 
 protected:
-  virtual void publish_status() override;
+  virtual void publish_states() override;
+
+private:
+  void on_set_active(bool value);
+  void on_set_color(uint32_t value);
+  void on_light_change();
+
+  void publish_states_(bool force);
+
+  bool active_;
+  uint32_t color_;
+  light::LightState *light_;
 };
 
 }  // namespace mylife

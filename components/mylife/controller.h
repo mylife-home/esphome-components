@@ -26,7 +26,7 @@ protected:
   void subscribe_action(const std::string &action, std::function<void(const std::string &buffer)> handler);
   void publish_state(const std::string &state, const std::string &buffer);
 
-  virtual void publish_status() = 0;
+  virtual void publish_states() = 0;
 
 private:
   std::string build_member_topic(const std::string &member) const;
