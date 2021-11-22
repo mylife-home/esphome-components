@@ -53,6 +53,7 @@ void MylifeClientComponent::setup() {
     this->state_ = MQTT_CLIENT_DISCONNECTED;
     this->disconnect_reason_ = reason;
   });
+  
 #ifdef USE_LOGGER
   if (logger::global_logger != nullptr) {
     logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
@@ -223,47 +224,67 @@ void MylifeClientComponent::check_connected() {
   // MQTT Client needs some time to be fully set up.
   delay(100);  // NOLINT
 
+  if (!this->birth_message_.topic.empty() && !this->sent_birth_message_) {
+    this->sent_birth_message_ = this->publish(this->birth_message_);
+  }
+
+  this->last_connected_ = millis();
+
   this->resubscribe_subscriptions_();
 
   online_callback_.call(true);
 }
 
+void MylifeClientComponent::check_disconnected() {
+  if (this->mqtt_client_.connected()) {
+    return;
+  }
+
+  this->state_ = MQTT_CLIENT_DISCONNECTED;
+  ESP_LOGW(TAG, "Lost MQTT Client connection!");
+  this->start_dnslookup_();
+}
+
+static void log_disconnect(AsyncMqttClientDisconnectReason reason) {
+  const LogString *reason_s;
+  switch (reason) {
+    case AsyncMqttClientDisconnectReason::TCP_DISCONNECTED:
+      reason_s = LOG_STR("TCP disconnected");
+      break;
+    case AsyncMqttClientDisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
+      reason_s = LOG_STR("Unacceptable Protocol Version");
+      break;
+    case AsyncMqttClientDisconnectReason::MQTT_IDENTIFIER_REJECTED:
+      reason_s = LOG_STR("Identifier Rejected");
+      break;
+    case AsyncMqttClientDisconnectReason::MQTT_SERVER_UNAVAILABLE:
+      reason_s = LOG_STR("Server Unavailable");
+      break;
+    case AsyncMqttClientDisconnectReason::MQTT_MALFORMED_CREDENTIALS:
+      reason_s = LOG_STR("Malformed Credentials");
+      break;
+    case AsyncMqttClientDisconnectReason::MQTT_NOT_AUTHORIZED:
+      reason_s = LOG_STR("Not Authorized");
+      break;
+    case AsyncMqttClientDisconnectReason::ESP8266_NOT_ENOUGH_SPACE:
+      reason_s = LOG_STR("Not Enough Space");
+      break;
+    case AsyncMqttClientDisconnectReason::TLS_BAD_FINGERPRINT:
+      reason_s = LOG_STR("TLS Bad Fingerprint");
+      break;
+    default:
+      reason_s = LOG_STR("Unknown");
+      break;
+  }
+  if (!network::is_connected()) {
+    reason_s = LOG_STR("WiFi disconnected");
+  }
+  ESP_LOGW(TAG, "MQTT Disconnected: %s.", LOG_STR_ARG(reason_s));
+}
+
 void MylifeClientComponent::loop() {
   if (this->disconnect_reason_.has_value()) {
-    const LogString *reason_s;
-    switch (*this->disconnect_reason_) {
-      case AsyncMqttClientDisconnectReason::TCP_DISCONNECTED:
-        reason_s = LOG_STR("TCP disconnected");
-        break;
-      case AsyncMqttClientDisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
-        reason_s = LOG_STR("Unacceptable Protocol Version");
-        break;
-      case AsyncMqttClientDisconnectReason::MQTT_IDENTIFIER_REJECTED:
-        reason_s = LOG_STR("Identifier Rejected");
-        break;
-      case AsyncMqttClientDisconnectReason::MQTT_SERVER_UNAVAILABLE:
-        reason_s = LOG_STR("Server Unavailable");
-        break;
-      case AsyncMqttClientDisconnectReason::MQTT_MALFORMED_CREDENTIALS:
-        reason_s = LOG_STR("Malformed Credentials");
-        break;
-      case AsyncMqttClientDisconnectReason::MQTT_NOT_AUTHORIZED:
-        reason_s = LOG_STR("Not Authorized");
-        break;
-      case AsyncMqttClientDisconnectReason::ESP8266_NOT_ENOUGH_SPACE:
-        reason_s = LOG_STR("Not Enough Space");
-        break;
-      case AsyncMqttClientDisconnectReason::TLS_BAD_FINGERPRINT:
-        reason_s = LOG_STR("TLS Bad Fingerprint");
-        break;
-      default:
-        reason_s = LOG_STR("Unknown");
-        break;
-    }
-    if (!network::is_connected()) {
-      reason_s = LOG_STR("WiFi disconnected");
-    }
-    ESP_LOGW(TAG, "MQTT Disconnected: %s.", LOG_STR_ARG(reason_s));
+    log_disconnect(*this->disconnect_reason_);
     this->disconnect_reason_.reset();
     online_callback_.call(false);
   }
@@ -283,18 +304,7 @@ void MylifeClientComponent::loop() {
       this->check_connected();
       break;
     case MQTT_CLIENT_CONNECTED:
-      if (!this->mqtt_client_.connected()) {
-        this->state_ = MQTT_CLIENT_DISCONNECTED;
-        ESP_LOGW(TAG, "Lost MQTT Client connection!");
-        this->start_dnslookup_();
-      } else {
-        if (!this->birth_message_.topic.empty() && !this->sent_birth_message_) {
-          this->sent_birth_message_ = this->publish(this->birth_message_);
-        }
-
-        this->last_connected_ = now;
-        this->resubscribe_subscriptions_();
-      }
+      this->check_disconnected();
       break;
   }
 

@@ -117,7 +117,6 @@ class MylifeClientComponent : public Component {
 
   bool can_proceed() override;
 
-  void check_connected();
 
   void set_reboot_timeout(uint32_t reboot_timeout);
 
@@ -141,6 +140,8 @@ class MylifeClientComponent : public Component {
 #else
   static void dns_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg);
 #endif
+  void check_connected();
+  void check_disconnected();
 
   bool subscribe_(const char *topic, uint8_t qos);
   void resubscribe_subscription_(Subscription *sub);
