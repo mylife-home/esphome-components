@@ -158,7 +158,6 @@ class MylifeClientComponent : public Component {
   Credentials credentials_;
   /// The last will message. Disabled optional denotes it being default and
   /// an empty topic denotes the the feature being disabled.
-  Message last_will_;
   Message log_message_;
   std::string payload_buffer_;
   int log_level_{ESPHOME_LOG_LEVEL};
