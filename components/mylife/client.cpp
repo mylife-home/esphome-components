@@ -241,6 +241,7 @@ void MylifeClientComponent::check_connected() {
 
 void MylifeClientComponent::check_disconnected() {
   if (this->mqtt_client_.connected()) {
+    this->last_connected_ = millis();
     return;
   }
 
