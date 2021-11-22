@@ -15,11 +15,14 @@
 
 #include "controller.h"
 #include "controller_factory.h"
+#include "encoding.h"
 
 namespace esphome {
 namespace mylife {
 
 static const char *const TAG = "mylife";
+
+static std::string build_online_topic();
 
 MylifeClientComponent::MylifeClientComponent()
  : metadata_(this) {
@@ -196,10 +199,12 @@ void MylifeClientComponent::start_connect_() {
   this->mqtt_client_.setCredentials(username, password);
 
   this->mqtt_client_.setServer((uint32_t) this->ip_, this->credentials_.port);
-  if (!this->last_will_.topic.empty()) {
-    this->mqtt_client_.setWill(this->last_will_.topic.c_str(), this->last_will_.qos, this->last_will_.retain,
-                               this->last_will_.payload.c_str(), this->last_will_.payload.length());
-  }
+
+  auto will_topic = build_online_topic();
+  auto will_payload = Encoding::write_bool(false);
+  auto will_qos = 0;
+  auto will_retain = true;
+  this->mqtt_client_.setWill(will_topic.c_str(), will_qos, will_retain, will_payload.c_str(), will_payload.length());
 
   this->mqtt_client_.connect();
   this->state_ = MQTT_CLIENT_CONNECTING;
@@ -220,21 +225,16 @@ void MylifeClientComponent::check_connected() {
   }
 
   this->state_ = MQTT_CLIENT_CONNECTED;
-  this->sent_birth_message_ = false;
   this->status_clear_warning();
   ESP_LOGI(TAG, "MQTT Connected!");
   // MQTT Client needs some time to be fully set up.
   delay(100);  // NOLINT
 
-  if (!this->birth_message_.topic.empty() && !this->sent_birth_message_) {
-    this->sent_birth_message_ = this->publish(this->birth_message_);
-  }
+  this->publish_online(true);
 
   this->last_connected_ = millis();
 
   this->resubscribe_subscriptions_();
-
-  // TODO: publish metadata
 
   online_callback_.call(true);
 }
@@ -318,6 +318,16 @@ void MylifeClientComponent::loop() {
 }
 
 float MylifeClientComponent::get_setup_priority() const { return setup_priority::AFTER_WIFI; }
+
+std::string build_online_topic() {
+  return App.get_name() + "/online";
+}
+
+void MylifeClientComponent::publish_online(bool online) {
+  auto topic = build_online_topic();
+  auto payload = Encoding::write_bool(online);
+  this->publish(topic, payload, 0, true);
+}
 
 // Subscribe
 bool MylifeClientComponent::subscribe_(const char *topic, uint8_t qos) {
@@ -500,11 +510,9 @@ void MylifeClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->
 void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_client_.setKeepAlive(keep_alive_s); }
 
 void MylifeClientComponent::on_shutdown() {
-  if (!this->shutdown_message_.topic.empty()) {
-    yield();
-    this->publish(this->shutdown_message_);
-    yield();
-  }
+  yield();
+  this->publish_online(false);
+  yield();
   this->mqtt_client_.disconnect(true);
 }
 
