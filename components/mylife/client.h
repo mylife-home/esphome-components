@@ -58,6 +58,7 @@ enum MQTTClientState {
   MQTT_CLIENT_DISCONNECTED = 0,
   MQTT_CLIENT_RESOLVING_ADDRESS,
   MQTT_CLIENT_CONNECTING,
+  MQTT_CLIENT_CLEANING,
   MQTT_CLIENT_CONNECTED,
 };
 
@@ -144,12 +145,14 @@ class MylifeClientComponent : public Component {
   static void dns_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg);
 #endif
   void check_connected();
+  void check_cleaned();
   void check_disconnected();
 
   bool subscribe_(const char *topic, uint8_t qos);
   void resubscribe_subscription_(Subscription *sub);
   void resubscribe_subscriptions_();
 
+  bool can_send();
   void publish_online(bool online);
 
   Credentials credentials_;
@@ -169,6 +172,7 @@ class MylifeClientComponent : public Component {
   uint32_t reboot_timeout_{300000};
   uint32_t connect_begin_;
   uint32_t last_connected_{0};
+  uint32_t start_clean_{0};
   optional<AsyncMqttClientDisconnectReason> disconnect_reason_{};
   CallbackManager<void(bool)> online_callback_{};
 

@@ -215,6 +215,10 @@ bool MylifeClientComponent::is_connected() {
   return this->state_ == MQTT_CLIENT_CONNECTED && this->mqtt_client_.connected();
 }
 
+bool MylifeClientComponent::can_send() {
+  return (this->state_ == MQTT_CLIENT_CONNECTED || this->state_ ==  MQTT_CLIENT_CLEANING) && this->mqtt_client_.connected();
+}
+
 void MylifeClientComponent::check_connected() {
   if (!this->mqtt_client_.connected()) {
     if (millis() - this->connect_begin_ > 60000) {
@@ -223,6 +227,29 @@ void MylifeClientComponent::check_connected() {
     }
     return;
   }
+
+  // init clean
+  this->state_ = MQTT_CLIENT_CLEANING;
+  this->start_clean_ = millis();
+
+  // clean all message for 2 secs
+  ESP_LOGD(TAG, "MQTT Cleaning");
+  this->subscribe(App.get_name() + "/#", [this](const std::string &topic, const std::string &payload) {
+    if (payload.size() > 0) {
+      ESP_LOGD(TAG, "MQTT Cleaning '%s'", topic.c_str());
+      this->publish(topic, nullptr, 0, 0, true);
+    }
+  });
+}
+
+void MylifeClientComponent::check_cleaned() {
+  // wait 2 secs
+  if (millis() - this->start_clean_ < 2000) {
+    return;
+  }
+
+  this->unsubscribe(App.get_name() + "/#");
+  ESP_LOGD(TAG, "MQTT Cleaned");
 
   this->state_ = MQTT_CLIENT_CONNECTED;
   this->status_clear_warning();
@@ -306,6 +333,9 @@ void MylifeClientComponent::loop() {
     case MQTT_CLIENT_CONNECTING:
       this->check_connected();
       break;
+    case MQTT_CLIENT_CLEANING:
+      this->check_cleaned();
+      break;
     case MQTT_CLIENT_CONNECTED:
       this->check_disconnected();
       break;
@@ -331,7 +361,7 @@ void MylifeClientComponent::publish_online(bool online) {
 
 // Subscribe
 bool MylifeClientComponent::subscribe_(const char *topic, uint8_t qos) {
-  if (!this->is_connected())
+  if (!this->can_send())
     return false;
 
   uint16_t ret = this->mqtt_client_.subscribe(topic, qos);
@@ -405,14 +435,14 @@ bool MylifeClientComponent::publish(const std::string &topic, const std::string 
 
 bool MylifeClientComponent::publish(const std::string &topic, const char *payload, size_t payload_length, uint8_t qos,
                                   bool retain) {
-  if (!this->is_connected()) {
+  if (!this->can_send()) {
     // critical components will re-transmit their messages
     return false;
   }
   bool logging_topic = topic == this->log_message_.topic;
   uint16_t ret = this->mqtt_client_.publish(topic.c_str(), qos, retain, payload, payload_length);
   delay(0);
-  if (ret == 0 && !logging_topic && this->is_connected()) {
+  if (ret == 0 && !logging_topic && this->can_send()) {
     delay(0);
     ret = this->mqtt_client_.publish(topic.c_str(), qos, retain, payload, payload_length);
     delay(0);
