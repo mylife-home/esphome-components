@@ -28,7 +28,7 @@ protected:
 
 private:
   void publish_metadata();
-  
+
   MylifeClientComponent *client_;
   std::string id_;
 };
