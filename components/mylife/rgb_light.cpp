@@ -53,11 +53,24 @@ void MylifeRgbLight::publish_states() {
 }
 
 void MylifeRgbLight::on_set_active(bool value) {
-
+  auto call = this->light_->make_call();
+  call.set_state(value);
+  call.perform();
 }
 
 void MylifeRgbLight::on_set_color(uint32_t value) {
+  color_encoding color_enc;
+  color_enc.color = value;
 
+  auto call = this->light_->make_call();
+
+  call.set_brightness(1);
+
+  call.set_red(static_cast<float>(color_enc.red) / 255);
+  call.set_green(static_cast<float>(color_enc.green) / 255);
+  call.set_blue(static_cast<float>(color_enc.blue) / 255);
+
+  call.perform();
 }
 
 void MylifeRgbLight::on_light_change() {
