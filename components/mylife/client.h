@@ -13,11 +13,14 @@
 #include "lwip/ip_addr.h"
 #include <vector>
 #include <memory>
+#include <set>
+#include "metadata.h"
 
 namespace esphome {
 namespace mylife {
 
 class MylifeController;
+struct PluginDefinition;
 
 /** Callback for MQTT subscriptions.
  *
@@ -173,6 +176,7 @@ class MylifeClientComponent : public Component {
   CallbackManager<void(bool)> online_callback_{};
 
   std::vector<std::unique_ptr<MylifeController>> controllers_;
+  Metadata metadata_;
 };
 
 }  // namespace mylife

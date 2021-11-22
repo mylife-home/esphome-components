@@ -21,7 +21,8 @@ namespace mylife {
 
 static const char *const TAG = "mylife";
 
-MylifeClientComponent::MylifeClientComponent() {
+MylifeClientComponent::MylifeClientComponent()
+ : metadata_(this) {
   this->credentials_.client_id = App.get_name() + "-" + get_mac_address() + "-mylife";
 }
 
@@ -34,6 +35,7 @@ void MylifeClientComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Mylife...");
 
   controllers_ = MylifeControllerFactory::build(this);
+  metadata_.build_plugins(controllers_);
 
   this->mqtt_client_.onMessage([this](char const *topic, char *payload, AsyncMqttClientMessageProperties properties,
                                       size_t len, size_t index, size_t total) {
@@ -231,6 +233,8 @@ void MylifeClientComponent::check_connected() {
   this->last_connected_ = millis();
 
   this->resubscribe_subscriptions_();
+
+  // TODO: publish metadata
 
   online_callback_.call(true);
 }

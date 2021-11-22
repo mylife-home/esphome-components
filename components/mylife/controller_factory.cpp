@@ -5,6 +5,7 @@
 #include "esphome/core/application.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
 #include "controller.h"
 
 #ifdef USE_BINARY_SENSOR
@@ -27,6 +28,7 @@
 #endif
 #ifdef USE_LIGHT
 #include "esphome/components/light/light_state.h"
+#include "rgb_light.h"
 #endif
 #ifdef USE_COVER
 #include "esphome/components/cover/cover.h"
@@ -87,6 +89,14 @@ static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent
 
 #ifdef USE_LIGHT
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, light::LightState *component) {
+  auto traits = component->get_traits();
+
+  if (traits.supports_color_mode(light::ColorMode::RGB)) {
+    return make_unique<MylifeRgbLight>(client, component);
+  }
+
+  // monochromatic = ColorMode::BRIGHTNESS
+
   ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Light'", component->get_name().c_str());
   return nullptr;
 }

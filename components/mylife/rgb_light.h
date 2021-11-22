@@ -5,6 +5,7 @@
 #ifdef USE_MYLIFE
 #ifdef USE_LIGHT
 
+#include "esphome/components/light/light_state.h"
 #include "controller.h"
 
 namespace esphome {
@@ -16,7 +17,9 @@ public:
   virtual ~MylifeRgbLight() = default;
 
   virtual const PluginDefinition *get_plugin_metadata() const override;
-  virtual const std::string &get_component_id() const override;
+
+protected:
+  virtual void publish_status() override;
 };
 
 }  // namespace mylife

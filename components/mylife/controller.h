@@ -4,13 +4,13 @@
 
 #ifdef USE_MYLIFE
 
+#include "esphome/core/entity_base.h"
+
 namespace esphome {
 namespace mylife {
 
-struct PluginDefinition {
-  std::string id;
-  std::string metadata;
-};
+class MylifeClientComponent;
+struct PluginDefinition;
 
 class MylifeController {
 public:
@@ -18,17 +18,19 @@ public:
   virtual ~MylifeController() = default;
 
   virtual const PluginDefinition *get_plugin_metadata() const = 0; // Note: same pointer = same plugin
-  virtual const std::string &get_component_id() const = 0;
+
+  const std::string &get_component_id() const;
 
 protected:
-  MylifeClientComponent *client() const {
-    return client_;
-  }
+  MylifeClientComponent *client() const;
+
+  virtual void publish_status() = 0;
 
 private:
   void publish_metadata();
-
+  
   MylifeClientComponent *client_;
+  std::string id_;
 };
 
 }  // namespace mylife
