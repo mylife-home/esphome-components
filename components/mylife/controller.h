@@ -5,6 +5,7 @@
 #ifdef USE_MYLIFE
 
 #include "esphome/core/entity_base.h"
+#include <functional>
 
 namespace esphome {
 namespace mylife {
@@ -22,11 +23,13 @@ public:
   const std::string &get_component_id() const;
 
 protected:
-  MylifeClientComponent *client() const;
+  void subscribe_action(const std::string &action, std::function<void(const std::string &buffer)> handler);
+  void publish_state(const std::string &state, const std::string &buffer);
 
   virtual void publish_status() = 0;
 
 private:
+  std::string build_member_topic(const std::string &member) const;
   void publish_metadata();
 
   MylifeClientComponent *client_;

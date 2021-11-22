@@ -6,6 +6,7 @@
 #include "controller.h"
 #include "metadata.h"
 #include "version.h"
+#include "encoding.h"
 
 namespace esphome {
 namespace mylife {
@@ -24,7 +25,8 @@ const PluginDefinition *MylifeRgbLight::get_plugin_metadata() const {
 }
 
 void MylifeRgbLight::publish_status() {
-  // TODO
+  this->publish_state("active", Encoding::write_bool(false));
+  this->publish_state("color", Encoding::write_uint32(0));
 }
 
 }  // namespace mylife

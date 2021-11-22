@@ -29,8 +29,22 @@ const std::string &MylifeController::get_component_id() const {
   return id_;
 }
 
-MylifeClientComponent *MylifeController::client() const {
-  return client_;
+void MylifeController::subscribe_action(const std::string &action, std::function<void(const std::string &buffer)> handler) {
+  auto callback = [handler](const std::string &topic, const std::string &payload) {
+    handler(payload);
+  };
+
+  auto topic = build_member_topic(action);
+  client_->subscribe(topic, callback);
+}
+
+void MylifeController::publish_state(const std::string &state, const std::string &buffer) {
+  auto topic = build_member_topic(state);
+  client_->publish(topic, buffer, 0, true);
+}
+
+std::string MylifeController::build_member_topic(const std::string &member) const {
+  return App.get_name() + "/components/" + this->get_component_id() + "/" + member;
 }
 
 void MylifeController::publish_metadata() {
