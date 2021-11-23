@@ -37,8 +37,12 @@ void MylifeClientComponent::add_on_online_callback(std::function<void(bool)> &&c
 void MylifeClientComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Mylife...");
 
-  controllers_ = MylifeControllerFactory::build(this);
-  metadata_.build_plugins(controllers_);
+  this->controllers_ = MylifeControllerFactory::build(this);
+  this->metadata_.build_plugins(controllers_);
+
+  this->set_interval(60000, [this]() {
+    this->metadata_.update();
+  });
 
   this->mqtt_client_.onMessage([this](char const *topic, char *payload, AsyncMqttClientMessageProperties properties,
                                       size_t len, size_t index, size_t total) {
