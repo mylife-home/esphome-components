@@ -16,11 +16,15 @@ from esphome.const import (
     CONF_USERNAME,
 )
 
+from esphome.components import time
+
+CONF_TIME = "time"
+
 from esphome.core import coroutine_with_priority
 
 
 DEPENDENCIES = ["network"]
-AUTO_LOAD = ["json", "async_tcp"]
+AUTO_LOAD = ["json", "async_tcp", "time"]
 
 mylife_ns = cg.esphome_ns.namespace("mylife")
 MylifeClientComponent = mylife_ns.class_("MylifeClientComponent", cg.Component)
@@ -36,6 +40,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_CLIENT_ID): cv.string,
             cv.Optional(CONF_KEEPALIVE, default="15s"): cv.positive_time_period_seconds,
             cv.Optional(CONF_REBOOT_TIMEOUT, default="15min"): cv.positive_time_period_milliseconds,
+            cv.Required(CONF_TIME): cv.use_id(time.RealTimeClock),
         }
     ),
     cv.only_with_arduino,
@@ -59,6 +64,9 @@ async def to_code(config):
 
     cg.add(var.set_keep_alive(config[CONF_KEEPALIVE]))
     cg.add(var.set_reboot_timeout(config[CONF_REBOOT_TIMEOUT]))
+
+    rtc = await cg.get_variable(config[CONF_TIME])
+    cg.add(var.set_rtc(rtc))
 
 async def mylife_connected_to_code(config, condition_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])

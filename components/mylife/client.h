@@ -9,6 +9,7 @@
 #include "esphome/core/log.h"
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/ip_address.h"
+#include "esphome/components/time/real_time_clock.h"
 #include <AsyncMqttClient.h>
 #include "lwip/ip_addr.h"
 #include <vector>
@@ -134,6 +135,8 @@ class MylifeClientComponent : public Component {
   void set_password(const std::string &password) { this->credentials_.password = password; }
   void set_client_id(const std::string &client_id) { this->credentials_.client_id = client_id; }
 
+  void set_rtc(time::RealTimeClock *rtc) { this->rtc_ = rtc; }
+
  protected:
   /// Reconnect to the MQTT broker if not already connected.
   void start_connect_();
@@ -160,6 +163,7 @@ class MylifeClientComponent : public Component {
   std::string payload_buffer_;
   int log_level_{ESPHOME_LOG_LEVEL};
 
+  time::RealTimeClock *rtc_;
   std::vector<Subscription> subscriptions_;
   AsyncMqttClient mqtt_client_;
   MQTTClientState state_{MQTT_CLIENT_DISCONNECTED};
