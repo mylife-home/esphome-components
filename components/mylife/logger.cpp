@@ -8,6 +8,8 @@
 #include "esphome/components/logger/logger.h"
 #endif
 #include <queue>
+#include <sstream>
+#include <iomanip>
 
 namespace esphome {
 namespace mylife {
@@ -123,7 +125,7 @@ bool Logger::output(const Timestamp& timestamp, int level, const char *tag, cons
     root["hostname"] = App.get_name();
     root["pid"] = 0;
     root["level"] = this->to_level(level);
-    root["msg"] = "test message";
+    root["msg"] = this->to_message(message);
     root["time"] = this->to_time(timestamp);
     root["v"] = 0;
   };
@@ -208,6 +210,23 @@ int Logger::to_level(int level) {
     return 0;
   }
 }
+
+std::string Logger::to_message(const char *msg) {
+  // https://stackoverflow.com/questions/7724448/simple-json-string-escape-for-c
+
+  std::ostringstream o;
+
+  for (auto ptr = msg; *ptr != 0; ++ptr) {
+    if (*ptr == '"' || *ptr == '\\' || ('\x00' <= *ptr && *ptr <= '\x1f')) {
+      o << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)*ptr;
+    } else {
+      o << *ptr;
+    }
+  }
+
+  return o.str();
+}
+
 
 
 }  // namespace mylife

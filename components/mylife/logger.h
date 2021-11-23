@@ -27,6 +27,7 @@ private:
   Timestamp now();
   std::string to_time(const Timestamp &timestamp);
   int to_level(int level);
+  std::string to_message(const char *msg);
 
   MylifeClientComponent *client_;
   time::RealTimeClock *rtc_{nullptr};
