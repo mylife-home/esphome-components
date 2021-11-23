@@ -14,7 +14,6 @@
 namespace esphome {
 namespace mylife {
 
-static const char *const TAG = "mylife";
 static constexpr std::size_t max_buffer_size = 4096;
 
 enum class TimestampType : uint8_t { time, uptime };
@@ -120,7 +119,7 @@ bool Logger::output(const Timestamp& timestamp, int level, const char *tag, cons
   auto topic = App.get_name() + "/logger";
 
   auto generator = [&](JsonObject &root) {
-    root["name"] = TAG;
+    root["name"] = tag;
     root["instanceName"] = App.get_name();
     root["hostname"] = App.get_name();
     root["pid"] = 0;
