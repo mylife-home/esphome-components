@@ -210,12 +210,12 @@ int Logger::to_level(int level) {
   }
 }
 
-std::string Logger::to_message(const char *msg) {
+static std::string json_escape(const std::string &msg) {
   // https://stackoverflow.com/questions/7724448/simple-json-string-escape-for-c
 
   std::ostringstream o;
 
-  for (auto ptr = msg; *ptr != 0; ++ptr) {
+  for (auto ptr = msg.cbegin(); ptr != msg.cend(); ++ptr) {
     if (*ptr == '"' || *ptr == '\\' || ('\x00' <= *ptr && *ptr <= '\x1f')) {
       o << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)*ptr;
     } else {
@@ -226,7 +226,25 @@ std::string Logger::to_message(const char *msg) {
   return o.str();
 }
 
+std::string Logger::to_message(const char *msg) {
+  // Remove logs decorations ... (cf. logger.cpp)
+  std::string str(msg);
+  static std::string header_end = "]: ";
+  static std::string footer_begin = ESPHOME_LOG_RESET_COLOR;
 
+  auto begin_index = str.find(header_end);
+  if (begin_index != std::string::npos) {
+    str.erase(0, begin_index + header_end.size());
+  }
+
+  auto end_index = str.find(footer_begin);
+  if (end_index != std::string::npos) {
+    str.erase(end_index);
+  }
+
+  // Note: ArduinoJson already escape \ to \\, so this does not work very well, but at least it makes not crash javascript parser
+  return json_escape(str);
+}
 
 }  // namespace mylife
 }  // namespace esphome
