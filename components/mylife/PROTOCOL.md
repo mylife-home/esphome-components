@@ -25,5 +25,6 @@ rpi2-home-epanel1-core/components/sdb-light/setValue
 
  - logger
 ```
+rpi-home-main-core/logger
 {"name":"mylife:home:core:plugins:driver-tahoma:engine:api","instanceName":"rpi-home-main-core","hostname":"rpi-home-main","pid":12324,"level":20,"msg":"fetchEvents","time":"2021-11-23T15:01:04.655Z","v":0}
 ```
