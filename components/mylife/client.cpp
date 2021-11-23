@@ -7,9 +7,6 @@
 #include "esphome/core/log.h"
 #include "esphome/components/network/util.h"
 #include <utility>
-#ifdef USE_LOGGER
-#include "esphome/components/logger/logger.h"
-#endif
 #include "lwip/err.h"
 #include "lwip/dns.h"
 
@@ -25,7 +22,8 @@ static const char *const TAG = "mylife";
 static std::string build_online_topic();
 
 MylifeClientComponent::MylifeClientComponent()
- : metadata_(this) {
+ : metadata_(this)
+ , logger_(this) {
   this->credentials_.client_id = App.get_name() + "-" + get_mac_address() + "-mylife";
 }
 
@@ -62,18 +60,6 @@ void MylifeClientComponent::setup() {
     this->state_ = MQTT_CLIENT_DISCONNECTED;
     this->disconnect_reason_ = reason;
   });
-  
-#ifdef USE_LOGGER
-  if (logger::global_logger != nullptr) {
-    logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
-      if (level <= this->log_level_ && this->is_connected()) {
-        int qos = 0;
-        bool retain = true;
-        //this->publish(this->log_message_.topic, message, strlen(message), qos, retain);
-      }
-    });
-  }
-#endif
 
   this->last_connected_ = millis();
   this->start_dnslookup_();
@@ -443,24 +429,19 @@ bool MylifeClientComponent::publish(const std::string &topic, const char *payloa
     // critical components will re-transmit their messages
     return false;
   }
-  bool logging_topic = topic == this->log_message_.topic;
+
   uint16_t ret = this->mqtt_client_.publish(topic.c_str(), qos, retain, payload, payload_length);
   delay(0);
-  if (ret == 0 && !logging_topic && this->can_send()) {
+  if (ret == 0 && this->can_send()) {
     delay(0);
     ret = this->mqtt_client_.publish(topic.c_str(), qos, retain, payload, payload_length);
     delay(0);
   }
 
-  if (!logging_topic) {
-    if (ret != 0) {
-      ESP_LOGV(TAG, "Publish(topic='%s' payload='%s' retain=%d)", topic.c_str(), payload, retain);
-    } else {
-      ESP_LOGV(TAG, "Publish failed for topic='%s' (len=%u). will retry later..", topic.c_str(),
-               payload_length);  // NOLINT
-      this->status_momentary_warning("publish", 1000);
-    }
+  if (ret == 0) {
+    this->status_momentary_warning("publish", 1000);
   }
+  
   return ret != 0;
 }
 
@@ -542,6 +523,7 @@ void MylifeClientComponent::on_message(const std::string &topic, const std::stri
 // Setters
 void MylifeClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
 void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_client_.setKeepAlive(keep_alive_s); }
+void MylifeClientComponent::set_rtc(time::RealTimeClock *rtc) { this->logger_.set_rtc(rtc); }
 
 void MylifeClientComponent::on_shutdown() {
   yield();
