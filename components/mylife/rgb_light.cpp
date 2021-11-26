@@ -24,7 +24,21 @@ namespace {
 
 static PluginDefinition definition {
   .id = "light.rgb",
-  .metadata = "{\"name\":\"rgb\",\"module\":\"light\",\"usage\":\"actuator\",\"version\":\"" MYLIFE_VERSION "\",\"config\":{},\"members\":{\"active\":{\"memberType\":\"state\",\"valueType\":\"bool\"},\"color\":{\"memberType\":\"state\",\"valueType\":\"range[0;16777215]\"},\"setActive\":{\"memberType\":\"action\",\"valueType\":\"bool\"},\"setColor\":{\"memberType\":\"action\",\"valueType\":\"range[0;16777215]\"}}}"
+  .metadata = R"EOF(
+{
+  "name": "rgb",
+  "module": "light",
+  "usage": "actuator",
+  "version": "MYLIFE_VERSION",
+  "config": {},
+  "members": {
+    "active": { "memberType": "state", "valueType": "bool" },
+    "color": { "memberType": "state", "valueType": "range[0;16777215]" },
+    "setActive": { "memberType": "action", "valueType": "bool" },
+    "setColor": { "memberType": "action", "valueType": "range[0;16777215]" }
+  }
+}
+)EOF"
 };
 
 MylifeRgbLight::MylifeRgbLight(MylifeClientComponent *client, light::LightState *target)
