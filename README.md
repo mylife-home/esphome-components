@@ -4,6 +4,12 @@
 - create tag release in github
 - update prod `external_components` (`common/base.yaml`)
 
+# First install
+
+## Windows driver
+
+Driver for NodeMCU: https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers/all
+
 # V1
 
 https://github.com/arduino-home/arduino-home-library
@@ -50,9 +56,3 @@ https://github.com/vincent-tr/arduino-sketches
   - hardware
   - versions - https://esphome.io/components/text_sensor/version.html
 - Logger
-
-# First install
-
-## Windows driver
-
-Driver for NodeMCU: https://learn.sparkfun.com/tutorials/how-to-install-ch340-drivers/all
