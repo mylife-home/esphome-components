@@ -44,11 +44,11 @@ void MylifeController::publish_state(const std::string &state, const std::string
 }
 
 std::string MylifeController::build_member_topic(const std::string &member) const {
-  return App.get_name() + "/components/" + this->get_component_id() + "/" + member;
+  return client_->build_topic({"components", this->get_component_id(), member});
 }
 
 void MylifeController::publish_metadata() {
-  auto topic = App.get_name() + "/metadata/components/" + this->id_;
+  auto topic =client_->build_topic({"metadata/components", this->id_});
 
   auto builder = [this](JsonObject &root) {
     root["id"] = this->id_;

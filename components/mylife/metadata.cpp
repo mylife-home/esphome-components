@@ -39,7 +39,7 @@ void Metadata::build_plugins(const std::vector<std::unique_ptr<MylifeController>
 
 void Metadata::publish_plugins() {
   for (const auto *plugin : plugins_) {
-    auto topic = App.get_name() + "/metadata/plugins/" + plugin->id;
+    auto topic = client_->build_topic({"metadata/plugins", plugin->id});
     client_->publish(topic, plugin->metadata, 0, true);
   }
 }
@@ -54,7 +54,7 @@ void Metadata::publish_instance_info() {
     return;
   }
 
-  auto topic = App.get_name() + "/metadata/instance-info";
+  auto topic = client_->build_topic("metadata/instance-info");
 
   auto generator = [this](JsonObject &root) {
     root["type"] = "core";

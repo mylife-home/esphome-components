@@ -123,7 +123,6 @@ class MylifeClientComponent : public Component {
 
   bool can_proceed() override;
 
-
   void set_reboot_timeout(uint32_t reboot_timeout);
 
   bool is_connected();
@@ -137,6 +136,9 @@ class MylifeClientComponent : public Component {
   void set_client_id(const std::string &client_id) { this->credentials_.client_id = client_id; }
 
   void set_rtc(time::RealTimeClock *rtc);
+
+  std::string build_topic(const std::string &suffix) const;
+  std::string build_topic(std::initializer_list<std::string> suffix) const;
 
  protected:
   /// Reconnect to the MQTT broker if not already connected.

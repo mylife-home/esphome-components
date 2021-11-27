@@ -7,6 +7,7 @@
 #include "esphome/core/log.h"
 #include "esphome/components/network/util.h"
 #include <utility>
+#include <sstream>
 #include "lwip/err.h"
 #include "lwip/dns.h"
 
@@ -18,8 +19,6 @@ namespace esphome {
 namespace mylife {
 
 static const char *const TAG = "mylife";
-
-static std::string build_online_topic();
 
 MylifeClientComponent::MylifeClientComponent()
  : metadata_(this)
@@ -190,7 +189,7 @@ void MylifeClientComponent::start_connect_() {
 
   this->mqtt_client_.setServer((uint32_t) this->ip_, this->credentials_.port);
 
-  auto will_topic = build_online_topic();
+  auto will_topic = this->build_topic("online");
   auto will_payload = Encoding::write_bool(false);
   auto will_qos = 0;
   auto will_retain = true;
@@ -224,7 +223,7 @@ void MylifeClientComponent::check_connected() {
 
   // clean all message for 2 secs
   ESP_LOGD(TAG, "MQTT Cleaning");
-  this->subscribe(App.get_name() + "/#", [this](const std::string &topic, const std::string &payload) {
+  this->subscribe(this->build_topic("#"), [this](const std::string &topic, const std::string &payload) {
     if (payload.size() > 0) {
       ESP_LOGD(TAG, "MQTT Cleaning '%s'", topic.c_str());
       this->publish(topic, nullptr, 0, 0, true);
@@ -238,7 +237,7 @@ void MylifeClientComponent::check_cleaned() {
     return;
   }
 
-  this->unsubscribe(App.get_name() + "/#");
+  this->unsubscribe(this->build_topic("#"));
   ESP_LOGD(TAG, "MQTT Cleaned");
 
   this->state_ = MQTT_CLIENT_CONNECTED;
@@ -339,12 +338,8 @@ void MylifeClientComponent::loop() {
 
 float MylifeClientComponent::get_setup_priority() const { return setup_priority::AFTER_WIFI; }
 
-std::string build_online_topic() {
-  return App.get_name() + "/online";
-}
-
 void MylifeClientComponent::publish_online(bool online) {
-  auto topic = build_online_topic();
+  auto topic = this->build_topic("online");
   auto payload = Encoding::write_bool(online);
   this->publish(topic, payload, 0, true);
 }
@@ -524,6 +519,22 @@ void MylifeClientComponent::on_message(const std::string &topic, const std::stri
 void MylifeClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
 void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_client_.setKeepAlive(keep_alive_s); }
 void MylifeClientComponent::set_rtc(time::RealTimeClock *rtc) { this->logger_.set_rtc(rtc); }
+
+std::string MylifeClientComponent::build_topic(const std::string &suffix) const {
+  return App.get_name() + "-core/" + suffix;
+}
+
+std::string MylifeClientComponent::build_topic(std::initializer_list<std::string> suffix) const {
+  std::ostringstream topic_builder;
+
+  topic_builder << App.get_name() << "-core";
+  for (const auto item : suffix) {
+    topic_builder << "/" << item;
+  }
+
+  return topic_builder.str();
+}
+
 
 void MylifeClientComponent::on_shutdown() {
   yield();

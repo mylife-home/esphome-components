@@ -116,7 +116,7 @@ bool Logger::output(const Timestamp& timestamp, int level, const char *tag, cons
     return false;
   }
 
-  auto topic = App.get_name() + "/logger";
+  auto topic = client_->build_topic("logger");
 
   auto generator = [&](JsonObject &root) {
     root["name"] = tag;
