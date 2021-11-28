@@ -22,7 +22,8 @@ static const char *const TAG = "mylife";
 
 MylifeClientComponent::MylifeClientComponent()
  : metadata_(this)
- , logger_(this) {
+ , logger_(this)
+ , rpc_(this) {
   this->credentials_.client_id = App.get_name() + "-" + get_mac_address() + "-mylife";
 }
 
@@ -36,10 +37,12 @@ void MylifeClientComponent::setup() {
 
   this->controllers_ = MylifeControllerFactory::build(this);
   this->metadata_.build_plugins(controllers_);
-
+  
   this->set_interval(60000, [this]() {
     this->metadata_.update();
   });
+
+  this->rpc_.serve_restart();
 
   this->mqtt_client_.onMessage([this](char const *topic, char *payload, AsyncMqttClientMessageProperties properties,
                                       size_t len, size_t index, size_t total) {
@@ -55,6 +58,7 @@ void MylifeClientComponent::setup() {
       this->payload_buffer_.clear();
     }
   });
+
   this->mqtt_client_.onDisconnect([this](AsyncMqttClientDisconnectReason reason) {
     this->state_ = MQTT_CLIENT_DISCONNECTED;
     this->disconnect_reason_ = reason;
@@ -519,6 +523,7 @@ void MylifeClientComponent::on_message(const std::string &topic, const std::stri
 void MylifeClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
 void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_client_.setKeepAlive(keep_alive_s); }
 void MylifeClientComponent::set_rtc(time::RealTimeClock *rtc) { this->logger_.set_rtc(rtc); }
+void MylifeClientComponent::set_ota(ota::OTAComponent *ota) { this->rpc_.set_ota(ota); }
 
 std::string MylifeClientComponent::build_topic(const std::string &suffix) const {
   return App.get_name() + "-core/" + suffix;

@@ -8,6 +8,7 @@
 #include "esphome/core/application.h"
 #include "esphome/core/version.h"
 #include "esphome/core/component.h"
+#include "esphome/core/log.h"
 
 #ifdef USE_WIFI
 #include "esphome/components/wifi/wifi_component.h"

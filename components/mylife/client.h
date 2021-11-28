@@ -10,6 +10,7 @@
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/ip_address.h"
 #include "esphome/components/time/real_time_clock.h"
+#include "esphome/components/ota/ota_component.h"
 #include <AsyncMqttClient.h>
 #include "lwip/ip_addr.h"
 #include <vector>
@@ -17,6 +18,7 @@
 #include <set>
 #include "metadata.h"
 #include "logger.h"
+#include "rpc.h"
 
 namespace esphome {
 namespace mylife {
@@ -136,6 +138,7 @@ class MylifeClientComponent : public Component {
   void set_client_id(const std::string &client_id) { this->credentials_.client_id = client_id; }
 
   void set_rtc(time::RealTimeClock *rtc);
+  void set_ota(ota::OTAComponent *ota);
 
   std::string build_topic(const std::string &suffix) const;
   std::string build_topic(std::initializer_list<std::string> suffix) const;
@@ -180,6 +183,7 @@ class MylifeClientComponent : public Component {
   std::vector<std::unique_ptr<MylifeController>> controllers_;
   Metadata metadata_;
   Logger logger_;
+  Rpc rpc_;
 };
 
 }  // namespace mylife

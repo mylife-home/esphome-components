@@ -5,26 +5,29 @@ import esphome.config_validation as cv
 from esphome import automation
 from esphome.automation import Condition
 from esphome.components import logger
+from esphome.components.ota import OTAComponent
+from esphome.components.time import RealTimeClock
+
 from esphome.const import (
     CONF_BROKER,
     CONF_CLIENT_ID,
     CONF_ID,
     CONF_KEEPALIVE,
+    CONF_OTA,
     CONF_PASSWORD,
     CONF_PORT,
     CONF_REBOOT_TIMEOUT,
     CONF_USERNAME,
 )
 
-from esphome.components import time
 
 CONF_TIME = "time"
 
 from esphome.core import coroutine_with_priority
 
 
-DEPENDENCIES = ["network"]
-AUTO_LOAD = ["json", "async_tcp", "time"]
+DEPENDENCIES = ["network", "ota", "time"]
+AUTO_LOAD = ["json", "async_tcp"]
 
 mylife_ns = cg.esphome_ns.namespace("mylife")
 MylifeClientComponent = mylife_ns.class_("MylifeClientComponent", cg.Component)
@@ -33,6 +36,8 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(MylifeClientComponent),
+            cv.GenerateID(CONF_OTA): cv.use_id(OTAComponent),
+            cv.GenerateID(CONF_TIME): cv.use_id(RealTimeClock),
             cv.Required(CONF_BROKER): cv.string_strict,
             cv.Optional(CONF_PORT, default=1883): cv.port,
             cv.Optional(CONF_USERNAME, default=""): cv.string,
@@ -40,7 +45,6 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_CLIENT_ID): cv.string,
             cv.Optional(CONF_KEEPALIVE, default="15s"): cv.positive_time_period_seconds,
             cv.Optional(CONF_REBOOT_TIMEOUT, default="15min"): cv.positive_time_period_milliseconds,
-            cv.Required(CONF_TIME): cv.use_id(time.RealTimeClock),
         }
     ),
     cv.only_with_arduino,
@@ -67,6 +71,9 @@ async def to_code(config):
 
     rtc = await cg.get_variable(config[CONF_TIME])
     cg.add(var.set_rtc(rtc))
+
+    ota = await cg.get_variable(config[CONF_OTA])
+    cg.add(var.set_ota(ota))
 
 async def mylife_connected_to_code(config, condition_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
