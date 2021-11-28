@@ -61,12 +61,16 @@ void Metadata::publish_instance_info() {
     root["hardware"] = ESPHOME_BOARD;
     root["hostname"] = App.get_name();
 
-#ifdef USE_WIFI
-    root["wifi-signal-strength"] = wifi::global_wifi_component->wifi_rssi();
-#endif
-
     JsonArray &capabilities = root.createNestedArray("capabilities");
     capabilities.add("components-manager");
+    capabilities.add("restart-api");
+
+#ifdef USE_WIFI
+    capabilities.add("wifi-client");
+
+    JsonObject &wifi = root.createNestedObject("wifi");
+    wifi["rssi"] = wifi::global_wifi_component->wifi_rssi();
+#endif
 
     const auto uptime = this->get_uptime();
     root["systemUptime"] = uptime;
