@@ -65,10 +65,9 @@ https://github.com/vincent-tr/arduino-sketches
 - binary light (+test)
 - switch (+test)
 
-- capabilities: wifi-client, restart-api
-- rpc restart (+fail safe)
-
 - rajouter dans studio instances-view support wifi-client (avec signal strength) + restart api
+- test rpc restart (+fail safe)
+- test wifi instance-info status
 
 Attention : a la livraison du esphome avec nouveaux topics "-core", les anciens topics ne sont pas supprimés (et donc ca fait des composants en doublons)
 => verifier le shutdown message ?
