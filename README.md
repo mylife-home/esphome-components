@@ -56,3 +56,20 @@ https://github.com/vincent-tr/arduino-sketches
   - hardware
   - versions - https://esphome.io/components/text_sensor/version.html
 - Logger
+
+# TODO
+
+- test sensor (eg: ds18b20)
+- binary sensor (+ test)
+- monochromatic light (+test)
+- binary light (+test)
+- switch (+test)
+
+- capabilities: wifi-client, restart-api
+- rpc restart (+fail safe)
+
+- rajouter dans studio instances-view support wifi-client (avec signal strength) + restart api
+
+Attention : a la livraison du esphome avec nouveaux topics "-core", les anciens topics ne sont pas supprimés (et donc ca fait des composants en doublons)
+=> verifier le shutdown message ?
+
