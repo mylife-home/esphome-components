@@ -128,7 +128,7 @@ void Rpc::serve(const std::string &address, std::unique_ptr<RpcService> service)
 }
 
 void Rpc::serve_restart() {
-  this->serve("restart", make_unique<RestartRpcService>(this->client_, this->ota_));
+  this->serve("system.restart", make_unique<RestartRpcService>(this->client_, this->ota_));
 }
 
 }  // namespace mylife
