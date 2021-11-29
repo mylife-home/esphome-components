@@ -62,7 +62,16 @@ void Metadata::publish_instance_info() {
     root["hostname"] = App.get_name();
 
     JsonObject &hardware = root.createNestedObject("hardware");
-    hardware["main"] = ESPHOME_BOARD;
+#if defined(ESPHOME_VARIANT) // Only keep this one when released
+    hardware["main"] = ESPHOME_VARIANT;
+#elif defined(USE_ESP32)
+    hardware["main"] = "ESP32";
+#elif defined(USE_ESP8266)
+    hardware["main"] = "ESP8266";
+#else
+    hardware["main"] = "<unknown>";
+#endif
+    hardware["board"] = ESPHOME_BOARD;
 
     JsonArray &capabilities = root.createNestedArray("capabilities");
     capabilities.add("components-manager");
