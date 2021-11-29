@@ -68,7 +68,9 @@ https://github.com/vincent-tr/arduino-sketches
 # TODO
 
 Livrer studio
-Missing version common + core/ui/studio
+Livrer ui
+Livrer cores (+ enlever plugin arduino-irc sur main)
+Livrer esps
 
 Attention : a la livraison du esphome avec nouveaux topics "-core", les anciens topics ne sont pas supprimés (et donc ca fait des composants en doublons)
 => clean avec MQTT explorer pendant le reboot
