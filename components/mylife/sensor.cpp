@@ -13,12 +13,12 @@ namespace mylife {
 
 static PluginDefinition definition {
   .id = "sensor.numeric",
-  .metadata = R"EOF(
+  .metadata = PluginDefinition::make_meta(R"EOF(
 {
   "name": "numeric",
   "module": "sensor",
   "usage": "sensor",
-  "version": "MYLIFE_VERSION",
+  "version": "{{version}}",
   "config": {},
   "members": {
     "value": { "memberType": "state", "valueType": "float" },
@@ -28,7 +28,7 @@ static PluginDefinition definition {
     "stateClass": { "memberType": "state", "valueType": "enum{none,measurement,total-increasing,unknown}" }
   }
 }
-)EOF"
+)EOF")
 };
 
 MylifeSensor::MylifeSensor(MylifeClientComponent *client, sensor::Sensor *target)

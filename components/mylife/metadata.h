@@ -17,6 +17,8 @@ class MylifeController;
 struct PluginDefinition {
   std::string id;
   std::string metadata;
+
+  static std::string make_meta(std::string template_string);
 };
 
 class Metadata {
