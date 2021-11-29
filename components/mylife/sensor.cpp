@@ -22,16 +22,16 @@ static PluginDefinition definition {
   "config": {},
   "members": {
     "value": { "memberType": "state", "valueType": "float" },
-    "unitOfMeasurement": { "memberType": "state", "valueType": "string" },
+    "unitOfMeasurement": { "memberType": "state", "valueType": "text" },
     "accuracyDecimals": { "memberType": "state", "valueType": "range[-128;127]" },
-    "deviceClass": { "memberType": "state", "valueType": "string" },
-    "stateClass": { "memberType": "state", "valueType": "enum{none,measurement,total-increasing}" }
+    "deviceClass": { "memberType": "state", "valueType": "text" },
+    "stateClass": { "memberType": "state", "valueType": "enum{none,measurement,total-increasing,unknown}" }
   }
 }
 )EOF"
 };
 
-MylifeRgbLight::MylifeRgbLight(MylifeClientComponent *client, sensor::Sensor *target)
+MylifeSensor::MylifeSensor(MylifeClientComponent *client, sensor::Sensor *target)
   : MylifeController(client, target)
   , sensor_(target) {
 
@@ -40,15 +40,15 @@ MylifeRgbLight::MylifeRgbLight(MylifeClientComponent *client, sensor::Sensor *ta
   });
 }
 
-const PluginDefinition *MylifeRgbLight::get_plugin_metadata() const {
+const PluginDefinition *MylifeSensor::get_plugin_metadata() const {
   return &definition;
 }
 
-void MylifeRgbLight::publish_states() {
+void MylifeSensor::publish_states() {
   this->publish_states_(true);
 }
 
-void MylifeRgbLight::on_sensor_change() {
+void MylifeSensor::on_sensor_change() {
   this->publish_states_(false);
 }
 
@@ -60,10 +60,12 @@ static std::string get_state_class(sensor::StateClass class_) {
     return "measurement";
   case sensor::StateClass::STATE_CLASS_TOTAL_INCREASING:
     return "total-increasing";
+  default:
+    return "unknown";
   }
 }
 
-void MylifeRgbLight::publish_states_(bool force) {
+void MylifeSensor::publish_states_(bool force) {
   auto value = this->sensor_->get_state();
 
   if (force || value != value_) {
