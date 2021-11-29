@@ -59,8 +59,10 @@ void Metadata::publish_instance_info() {
 
   auto generator = [this](JsonObject &root) {
     root["type"] = "core";
-    root["hardware"] = ESPHOME_BOARD;
     root["hostname"] = App.get_name();
+
+    JsonObject &hardware = root.createNestedObject("hardware");
+    hardware["main"] = ESPHOME_BOARD;
 
     JsonArray &capabilities = root.createNestedArray("capabilities");
     capabilities.add("components-manager");
