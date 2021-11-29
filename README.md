@@ -59,7 +59,7 @@ https://github.com/vincent-tr/arduino-sketches
 
 ## Ajouter d'autre plugins
 
-- sensor (+test avec ds18b20)
+OK - sensor (+test)
 - binary sensor (+ test)
 - monochromatic light (+test)
 - binary light (+test)
