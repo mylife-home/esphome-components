@@ -429,19 +429,18 @@ bool MylifeClientComponent::publish(const std::string &topic, const char *payloa
     return false;
   }
 
-  uint16_t ret = this->mqtt_client_.publish(topic.c_str(), qos, retain, payload, payload_length);
-  delay(0);
-  if (ret == 0 && this->can_send()) {
-    delay(0);
-    ret = this->mqtt_client_.publish(topic.c_str(), qos, retain, payload, payload_length);
-    delay(0);
+  // Try 10 times with more and more delay
+  constexpr int max_tries = 10;
+  for (int try_index=0; try_index<max_tries; ++try_index) {
+    bool ret = !!this->mqtt_client_.publish(topic.c_str(), qos, retain, payload, payload_length);
+    if (ret || !this->can_send()) {
+      return ret;
+    }
+
+    delay(try_index * 10);
   }
 
-  if (ret == 0) {
-    this->status_momentary_warning("publish", 1000);
-  }
-  
-  return ret != 0;
+  return false;
 }
 
 bool MylifeClientComponent::publish(const Message &message) {
