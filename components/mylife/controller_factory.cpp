@@ -17,6 +17,7 @@
 #endif
 #ifdef USE_SWITCH
 #include "esphome/components/switch/switch.h"
+#include "controller_switch.h"
 #endif
 #ifdef USE_TEXT_SENSOR
 #include "esphome/components/text_sensor/text_sensor.h"
@@ -63,8 +64,7 @@ static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent
 
 #ifdef USE_SWITCH
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, switch_::Switch *component) {
-  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Switch'", component->get_name().c_str());
-  return nullptr;
+  return make_unique<MylifeSwitch>(client, component);
 }
 #endif
 
