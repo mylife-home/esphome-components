@@ -48,7 +48,7 @@ std::string MylifeController::build_member_topic(const std::string &member) cons
 }
 
 void MylifeController::publish_metadata() {
-  auto topic =client_->build_topic({"metadata/components", this->id_});
+  auto topic = client_->build_topic({"metadata/components", this->id_});
 
   auto builder = [this](JsonObject &root) {
     root["id"] = this->id_;
