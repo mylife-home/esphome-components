@@ -61,6 +61,6 @@ https://github.com/vincent-tr/arduino-sketches
 
 OK - sensor (+test)
 - binary sensor (+ test)
-- monochromatic light (+test)
-- binary light (+test)
+OK - monochromatic light (+test)
+OK - binary light (+test)
 - switch (+test)
