@@ -57,11 +57,11 @@ https://github.com/vincent-tr/arduino-sketches
   - versions - https://esphome.io/components/text_sensor/version.html
 - Logger
 
-## Ajouter d'autre plugins
+## Ajouter d'autre plugins => OK
 
-OK - sensor (+test)
+- sensor (+test)
 - binary sensor (+ test)
-OK - monochromatic light (+test)
-OK - binary light (+test)
-OK - switch (+test)
+- monochromatic light (+test)
+- binary light (+test)
+- switch (+test)
 - text sensor (+test)
