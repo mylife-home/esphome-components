@@ -1,4 +1,4 @@
-#include "rgb_light.h"
+#include "controller_rgb_light.h"
 
 #ifdef USE_MYLIFE
 #ifdef USE_LIGHT

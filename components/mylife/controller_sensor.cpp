@@ -1,4 +1,4 @@
-#include "sensor.h"
+#include "controller_sensor.h"
 
 #ifdef USE_MYLIFE
 #ifdef USE_SENSOR

@@ -13,7 +13,7 @@
 #endif
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
-#include "sensor.h"
+#include "controller_sensor.h"
 #endif
 #ifdef USE_SWITCH
 #include "esphome/components/switch/switch.h"
@@ -29,7 +29,7 @@
 #endif
 #ifdef USE_LIGHT
 #include "esphome/components/light/light_state.h"
-#include "rgb_light.h"
+#include "controller_rgb_light.h"
 #endif
 #ifdef USE_COVER
 #include "esphome/components/cover/cover.h"
