@@ -7,6 +7,7 @@
 #include "metadata.h"
 #include "version.h"
 #include "encoding.h"
+#include "color_utils.h"
 
 namespace esphome {
 namespace mylife {
@@ -79,10 +80,11 @@ void MylifeRgbLight::on_set_color(uint32_t value) {
   auto call = this->light_->make_call();
 
   call.set_brightness(1);
+  call.set_color_brightness(1);
 
-  call.set_red(static_cast<float>(color_enc.red) / 255);
-  call.set_green(static_cast<float>(color_enc.green) / 255);
-  call.set_blue(static_cast<float>(color_enc.blue) / 255);
+  call.set_red(color_utof(color_enc.red));
+  call.set_green(color_utof(color_enc.green));
+  call.set_blue(color_utof(color_enc.blue));
 
   call.perform();
 }
@@ -97,10 +99,12 @@ void MylifeRgbLight::publish_states_(bool force) {
 
   auto active = values.get_state() != 0.0f;
 
+  // Need to compute manually because LightColorValue take state into account (so color would be 0 if active === false).
+  float brightness = values.get_brightness() * values.get_color_brightness();
   color_encoding color_enc;
-  color_enc.red = uint8_t(values.get_color_brightness() * values.get_red() * 255);
-  color_enc.green = uint8_t(values.get_color_brightness() * values.get_green() * 255);
-  color_enc.blue = uint8_t(values.get_color_brightness() * values.get_blue() * 255);
+  color_enc.red = color_ftou(brightness * values.get_red());
+  color_enc.green = color_ftou(brightness * values.get_green());
+  color_enc.blue = color_ftou(brightness * values.get_blue());
   auto color = color_enc.color;
 
   if (force || active != active_) {

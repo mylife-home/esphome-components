@@ -30,6 +30,8 @@
 #ifdef USE_LIGHT
 #include "esphome/components/light/light_state.h"
 #include "controller_rgb_light.h"
+#include "controller_monochromatic_light.h"
+#include "controller_binary_light.h"
 #endif
 #ifdef USE_COVER
 #include "esphome/components/cover/cover.h"
@@ -93,9 +95,11 @@ static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent
 
   if (traits.supports_color_mode(light::ColorMode::RGB)) {
     return make_unique<MylifeRgbLight>(client, component);
+  } else if (traits.supports_color_mode(light::ColorMode::BRIGHTNESS)) {
+    return make_unique<MylifeMonochromaticLight>(client, component);
+  } else if (traits.supports_color_mode(light::ColorMode::ON_OFF)) {
+    return make_unique<MylifeBinaryLight>(client, component);
   }
-
-  // monochromatic = ColorMode::BRIGHTNESS
 
   ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Light'", component->get_name().c_str());
   return nullptr;
