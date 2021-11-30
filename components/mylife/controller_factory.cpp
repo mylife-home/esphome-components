@@ -10,6 +10,7 @@
 
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
+#include "controller_binary_sensor.h"
 #endif
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
@@ -21,6 +22,7 @@
 #endif
 #ifdef USE_TEXT_SENSOR
 #include "esphome/components/text_sensor/text_sensor.h"
+#include "controller_text_sensor.h"
 #endif
 #ifdef USE_FAN
 #include "esphome/components/fan/fan_state.h"
@@ -51,8 +53,7 @@ static const char *const TAG = "mylife";
 
 #ifdef USE_BINARY_SENSOR
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, binary_sensor::BinarySensor *component) {
-  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'BinarySensor'", component->get_name().c_str());
-  return nullptr;
+  return make_unique<MylifeBinarySensor>(client, component);
 }
 #endif
 
@@ -70,8 +71,7 @@ static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent
 
 #ifdef USE_TEXT_SENSOR
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, text_sensor::TextSensor *component) {
-  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'TextSensor'", component->get_name().c_str());
-  return nullptr;
+  return make_unique<MylifeTextSensor>(client, component);
 }
 #endif
 
