@@ -11,17 +11,6 @@
 namespace esphome {
 namespace mylife {
 
-namespace {
-  union color_encoding {
-    uint32_t color;
-    struct {
-      uint8_t red;
-      uint8_t blue;
-      uint8_t green;
-    };
-  };
-}
-
 static PluginDefinition definition {
   .id = "light.binary",
   .metadata = PluginDefinition::make_meta(R"EOF(
