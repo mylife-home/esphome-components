@@ -16,9 +16,10 @@ namespace {
   union color_encoding {
     uint32_t color;
     struct {
-      uint8_t red;
       uint8_t blue;
       uint8_t green;
+      uint8_t red;
+      uint8_t padding;
     };
   };
 }
@@ -102,6 +103,7 @@ void MylifeRgbLight::publish_states_(bool force) {
   // Need to compute manually because LightColorValue take state into account (so color would be 0 if active === false).
   float brightness = values.get_brightness() * values.get_color_brightness();
   color_encoding color_enc;
+  color_enc.padding = 0;
   color_enc.red = color_ftou(brightness * values.get_red());
   color_enc.green = color_ftou(brightness * values.get_green());
   color_enc.blue = color_ftou(brightness * values.get_blue());
