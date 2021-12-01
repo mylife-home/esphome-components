@@ -41,6 +41,7 @@ https://github.com/vincent-tr/arduino-sketches
 ## Experimenter output pour PWM RGB => OK
 
 ## Essayer de faire des composants/plugins custom pour arriver vers un MQTT custom => OK
+
 - comprendre le protocol actuel
 - comprendre comment "override" et avoir des composant custom
 - reimplementer discovery (=metadata plugin/composants) + composants actions/state
@@ -50,6 +51,7 @@ https://github.com/vincent-tr/arduino-sketches
    c/c chose utiles de MQTT Client, etc, mais faire un domaine "mylife" completement independant
 
 ## Ajouter d'autres elements custom => OK
+
 - Metadata instance
   - uptime
   - WIFI signal strength - https://esphome.io/components/text_sensor/wifi_info.html
@@ -65,3 +67,9 @@ https://github.com/vincent-tr/arduino-sketches
 - binary light (+test)
 - switch (+test)
 - text sensor (+test)
+
+## Git engine
+
+- améliorer portal en appli web
+- un bouton pour git pull (avec un badge quand des modifs sont détectées)
+- afficher une notif quand pull OK
