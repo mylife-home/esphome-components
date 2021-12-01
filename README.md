@@ -25,7 +25,7 @@ https://github.com/vincent-tr/arduino-sketches
   - instance meta
 - PoC sur PWM RGB
 
-# Ameliorations v2
+# Ameliorations v3
 
 ## Git engine
 
