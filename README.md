@@ -68,6 +68,8 @@ https://github.com/vincent-tr/arduino-sketches
 - switch (+test)
 - text sensor (+test)
 
+# Ameliorations v2
+
 ## Git engine
 
 - améliorer portal en appli web
