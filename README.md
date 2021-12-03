@@ -32,3 +32,7 @@ https://github.com/vincent-tr/arduino-sketches
 - améliorer portal en appli web
 - un bouton pour git pull (avec un badge quand des modifs sont détectées)
 - afficher une notif quand pull OK
+
+# Notes
+
+- Sonoff S26 : https://tasmota.github.io/docs/devices/Sonoff-S26-Smart-Socket/
