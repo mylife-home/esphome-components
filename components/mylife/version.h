@@ -4,6 +4,6 @@
 
 #ifdef USE_MYLIFE
 
-#define MYLIFE_VERSION "1.0.3"
+#define MYLIFE_VERSION "1.0.4"
 
 #endif  // USE_MYLIFE
