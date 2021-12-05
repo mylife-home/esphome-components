@@ -221,6 +221,9 @@ void MylifeClientComponent::check_connected() {
     return;
   }
 
+  // explicitly mark online so that we don't have inconsistent state while cleaning (plugin removed before component)
+  this->publish_online(false);
+
   // init clean
   this->state_ = MQTT_CLIENT_CLEANING;
   this->start_clean_ = millis();
@@ -344,8 +347,13 @@ float MylifeClientComponent::get_setup_priority() const { return setup_priority:
 
 void MylifeClientComponent::publish_online(bool online) {
   auto topic = this->build_topic("online");
-  auto payload = Encoding::write_bool(online);
-  this->publish(topic, payload, 0, true);
+  if (online) {
+    auto payload = Encoding::write_bool(true); 
+    this->publish(topic, payload, 0, true);
+  } else {
+    // offline => clear retain flag only
+    this->publish(topic, nullptr, 0, 0, true);
+  }
 }
 
 // Subscribe
