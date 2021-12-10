@@ -221,6 +221,9 @@ void MylifeClientComponent::check_connected() {
     return;
   }
 
+  // MQTT Client needs some time to be fully set up.
+  delay(100);  // NOLINT
+
   // explicitly mark online so that we don't have inconsistent state while cleaning (plugin removed before component)
   this->publish_online(false);
 
@@ -250,8 +253,6 @@ void MylifeClientComponent::check_cleaned() {
   this->state_ = MQTT_CLIENT_CONNECTED;
   this->status_clear_warning();
   ESP_LOGI(TAG, "MQTT Connected!");
-  // MQTT Client needs some time to be fully set up.
-  delay(100);  // NOLINT
 
   this->publish_online(true);
 
