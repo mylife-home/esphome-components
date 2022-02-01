@@ -1,6 +1,7 @@
 # Dev Ops
 
 ## Bump
+- update components/mylife/version.h
 - create tag release in github
 - update prod `external_components` (`common/base.yaml`)
 
