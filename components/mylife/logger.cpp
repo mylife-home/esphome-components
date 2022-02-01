@@ -118,7 +118,7 @@ bool Logger::output(const Timestamp& timestamp, int level, const char *tag, cons
 
   auto topic = client_->build_topic("logger");
 
-  auto generator = [&](JsonObject &root) {
+  auto payload = json::build_json([&](JsonObject root) {
     root["name"] = tag;
     root["instanceName"] = App.get_name();
     root["hostname"] = App.get_name();
@@ -127,12 +127,9 @@ bool Logger::output(const Timestamp& timestamp, int level, const char *tag, cons
     root["msg"] = this->to_message(message);
     root["time"] = this->to_time(timestamp);
     root["v"] = 0;
-  };
+  });
 
-  size_t len;
-  const char *payload = json::build_json(generator, &len);
-
-  return client_->publish(topic, payload, len);
+  return client_->publish(topic, payload.data(), payload.size());
 }
 
 void Logger::try_flush() {

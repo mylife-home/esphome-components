@@ -2,6 +2,7 @@
 
 #ifdef USE_MYLIFE
 
+#include <cstring>
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -48,7 +49,7 @@ namespace {
       }
 
       exchange<ValueType> ex;
-      memcpy(ex.raw, buffer.data(), sizeof(ValueType));
+      std::memcpy(ex.raw, buffer.data(), sizeof(ValueType));
       return ex.value;
     }
   };

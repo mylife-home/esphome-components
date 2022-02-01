@@ -50,14 +50,12 @@ std::string MylifeController::build_member_topic(const std::string &member) cons
 void MylifeController::publish_metadata() {
   auto topic = client_->build_topic({"metadata/components", this->id_});
 
-  auto builder = [this](JsonObject &root) {
+  auto payload = json::build_json([this](JsonObject root) {
     root["id"] = this->id_;
     root["plugin"] = this->get_plugin_metadata()->id;
-  };
+  });
 
-  size_t len;
-  const char *payload = json::build_json(builder, &len);
-  client_->publish(topic, payload, len, 0, true);
+  client_->publish(topic, payload.data(), payload.size(), 0, true);
 }
 
 }  // namespace mylife

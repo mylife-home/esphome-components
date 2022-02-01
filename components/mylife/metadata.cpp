@@ -75,11 +75,11 @@ void Metadata::publish_instance_info() {
 
   auto topic = client_->build_topic("metadata/instance-info");
 
-  auto generator = [this](JsonObject &root) {
+  auto message = json::build_json([this](JsonObject root) {
     root["type"] = "core";
     root["hostname"] = App.get_name();
 
-    JsonObject &hardware = root.createNestedObject("hardware");
+    JsonObject hardware = root.createNestedObject("hardware");
 #if defined(ESPHOME_VARIANT) // Only keep this one when released
     hardware["main"] = ESPHOME_VARIANT;
 #elif defined(USE_ESP32)
@@ -91,14 +91,14 @@ void Metadata::publish_instance_info() {
 #endif
     hardware["board"] = ESPHOME_BOARD;
 
-    JsonArray &capabilities = root.createNestedArray("capabilities");
+    JsonArray capabilities = root.createNestedArray("capabilities");
     capabilities.add("components-manager");
     capabilities.add("restart-api");
 
 #ifdef USE_WIFI
     capabilities.add("wifi-client");
 
-    JsonObject &wifi = root.createNestedObject("wifi");
+    JsonObject wifi = root.createNestedObject("wifi");
     wifi["rssi"] = wifi::global_wifi_component->wifi_rssi();
 #endif
 
@@ -106,7 +106,7 @@ void Metadata::publish_instance_info() {
     root["systemUptime"] = uptime;
     root["instanceUptime"] = uptime;
 
-    JsonObject &versions = root.createNestedObject("versions");
+    JsonObject versions = root.createNestedObject("versions");
     versions["esphome"] = ESPHOME_VERSION;
     versions["mylife"] = MYLIFE_VERSION;
     versions["build"] = App.get_compilation_time();
@@ -114,12 +114,9 @@ void Metadata::publish_instance_info() {
     versions["project"] = ESPHOME_PROJECT_NAME " " ESPHOME_PROJECT_VERSION;
 #endif
 
-  };
+  });
 
-  size_t len;
-  const char *message = json::build_json(generator, &len);
-
-  client_->publish(topic, message, len, 0, true);
+  client_->publish(topic, message.data(), message.size(), 0, true);
 }
 
 void Metadata::update_uptime() {

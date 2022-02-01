@@ -107,7 +107,7 @@ void Rpc::serve(const std::string &address, std::unique_ptr<RpcService> service)
     auto call_ptr = call.get();
     std::string reply_topic;
 
-    json::parse_json(payload, [call_ptr, &reply_topic](JsonObject &root) {
+    json::parse_json(payload, [call_ptr, &reply_topic](JsonObject root) {
       JsonVariant input = root["input"];
       reply_topic = root["replyTopic"].as<std::string>();
 
@@ -116,14 +116,13 @@ void Rpc::serve(const std::string &address, std::unique_ptr<RpcService> service)
 
     call_ptr->execute();
 
-    size_t len;
-    const char *reply_payload = json::build_json([call_ptr](JsonObject &root) {
+    auto reply_payload = json::build_json([call_ptr](JsonObject root) {
       // Note: cannot report error
-      auto &output = root.createNestedObject("output");
+      auto output = root.createNestedObject("output");
       call_ptr->build_output(output);
-    }, &len);
+    });
 
-    this->client_->publish(reply_topic, reply_payload, len);
+    this->client_->publish(reply_topic, reply_payload.data(), reply_payload.size());
   });
 }
 
