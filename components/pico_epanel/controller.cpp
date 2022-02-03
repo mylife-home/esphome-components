@@ -52,21 +52,23 @@ void PicoEpanelController::dump_config() {
 }
 
 bool PicoEpanelController::read_u16(uint8_t reg, uint16_t *value) {
-  if (this->read_register(reg, reinterpret_cast<uint8_t *>(value), sizeof(*value)) == i2c::ERROR_OK) {
+  auto result = this->read_register(reg, reinterpret_cast<uint8_t *>(value), sizeof(*value));
+  if (result == i2c::ERROR_OK) {
     return true;
   }
 
-  ESP_LOGE(TAG, "Could not read register %hu", reg);
+  ESP_LOGE(TAG, "Could not read register %hu (error=%d)", reg, result);
   this->mark_failed();
   return false;
 }
 
 bool PicoEpanelController::write_u16(uint8_t reg, const uint16_t value) {
-  if (this->write_register(reg, reinterpret_cast<const uint8_t *>(&value), sizeof(value)) == i2c::ERROR_OK) {
+  auto result = this->write_register(reg, reinterpret_cast<const uint8_t *>(&value), sizeof(value));
+  if (result == i2c::ERROR_OK) {
     return true;
   }
 
-  ESP_LOGE(TAG, "Could not write register %hu", reg);
+  ESP_LOGE(TAG, "Could not write register %hu (error=%d)", reg, result);
   this->mark_failed();
   return false;
 }
