@@ -10,6 +10,7 @@
 #pragma once
 
 #include "esphome/core/component.h"
+#include "esphome/core/hal.h"
 #include "esphome/components/i2c/i2c.h"
 
 namespace esphome {
@@ -20,8 +21,9 @@ public:
   PicoEpanelController() = default;
 
   void setup() override;
-  void loop() override;
   void dump_config() override;
+
+  void set_interrupt_pin(InternalGPIOPin *intr_pin) { intr_pin_ = intr_pin; }
 
 private:
   bool read_u16(uint8_t reg, uint16_t *value);
@@ -30,8 +32,12 @@ private:
   uint16_t read_inputs();
   void write_output(uint8_t index, uint8_t value);
 
+  static void s_intr_pin_handler(PicoEpanelController *this_);
+  void refresh_inputs();
+
   uint16_t inputs_{0};
   std::array<uint8_t, 16> outputs_{{0}};
+  InternalGPIOPin *intr_pin_{nullptr};
 };
 
 }  // namespace pico_epanel

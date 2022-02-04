@@ -29,19 +29,17 @@ void PicoEpanelController::setup() {
   }
 
   // reset
-  this->write_u16(REG_RESET, 0);
-}
-
-void PicoEpanelController::loop() {
-  auto new_inputs = read_inputs();
-  if (new_inputs == this->inputs_) {
+  if (!this->write_u16(REG_RESET, 0)) {
     return;
   }
 
-  // TODO
-  ESP_LOGI(TAG, "Inputs change %hu -> %hu", this->inputs_, new_inputs);
+  // initial inputs state
+  this->inputs_ = this->read_inputs();
 
-  this->inputs_ = new_inputs;
+  // setup interrupt pin
+  this->intr_pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
+  this->intr_pin_->setup();
+  this->intr_pin_->attach_interrupt(&PicoEpanelController::s_intr_pin_handler, this, gpio::INTERRUPT_FALLING_EDGE);
 }
 
 void PicoEpanelController::dump_config() {
@@ -85,6 +83,24 @@ uint16_t PicoEpanelController::read_inputs() {
 void PicoEpanelController::write_output(uint8_t index, uint8_t value) {
   uint16_t data = ((uint16_t)index << 8) | value;
   this->write_u16(REG_OUTPUTS, data);
+}
+
+void PicoEpanelController::s_intr_pin_handler(PicoEpanelController *this_) {
+  this_->defer([&]() {
+    this_->refresh_inputs();
+  });
+}
+
+void PicoEpanelController::refresh_inputs() {
+  auto new_inputs = read_inputs();
+  if (new_inputs == this->inputs_) {
+    return;
+  }
+
+  // TODO
+  ESP_LOGI(TAG, "Inputs change %hu -> %hu", this->inputs_, new_inputs);
+
+  this->inputs_ = new_inputs;
 }
 
 }  // namespace pico_epanel
