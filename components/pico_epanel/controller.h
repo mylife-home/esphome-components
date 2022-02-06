@@ -30,7 +30,7 @@ public:
   void set_interrupt_pin(InternalGPIOPin *intr_pin) { intr_pin_ = intr_pin; }
 
   void set_input(binary_sensor::BinarySensor *sensor, uint8_t index) { inputs_[index] = sensor; }
-  void set_output(PicoEpanelOutput *output);
+  void set_output(PicoEpanelOutput *output, uint8_t index);
 
 private:
   bool read_u16(uint8_t reg, uint16_t *value);

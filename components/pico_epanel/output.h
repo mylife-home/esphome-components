@@ -10,17 +10,15 @@ class PicoEpanelOutput : public output::FloatOutput, public Component {
 public:
   PicoEpanelOutput() = default;
 
-  void set_index(uint8_t index) { this->index_ = index; }
-  void add_on_write_callback(std::function<void(uint8_t, float)> &&callback) { this->on_write_callback_.add(std::move(callback)); }
+  void add_on_write_callback(std::function<void(float)> &&callback) { this->on_write_callback_.add(std::move(callback)); }
 
 protected:
   void write_state(float value) override {
-    this->on_write_callback_.call(this->index_, value);
+    this->on_write_callback_.call(value);
   }
 
 private:
-  uint8_t index_;
-  CallbackManager<void(uint8_t, float)> on_write_callback_{};
+  CallbackManager<void(float)> on_write_callback_{};
 };
 
 }  // namespace pico_epanel
