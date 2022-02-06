@@ -14,6 +14,7 @@ CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend(
 )
 
 async def to_code(config):
-    controller = await cg.get_variable(config[CONF_CONTROLLER_ID])
     var = await binary_sensor.new_binary_sensor(config)
+
+    controller = await cg.get_variable(config[CONF_CONTROLLER_ID])
     cg.add(controller.set_input(var, config[CONF_INDEX]))
