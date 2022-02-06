@@ -18,6 +18,8 @@
 namespace esphome {
 namespace pico_epanel {
 
+class PicoEpanelOutput;
+
 class PicoEpanelController : public Component, public i2c::I2CDevice {
 public:
   PicoEpanelController() = default;
@@ -28,7 +30,7 @@ public:
   void set_interrupt_pin(InternalGPIOPin *intr_pin) { intr_pin_ = intr_pin; }
 
   void set_input(binary_sensor::BinarySensor *sensor, uint8_t index) { inputs_[index] = sensor; }
-  //void set_output
+  void set_output(PicoEpanelOutput *output);
 
 private:
   bool read_u16(uint8_t reg, uint16_t *value);
@@ -41,7 +43,6 @@ private:
   void refresh_inputs();
 
   std::array<binary_sensor::BinarySensor *, 16> inputs_{{nullptr}};
-  std::array<uint8_t, 16> outputs_{{0}};
   InternalGPIOPin *intr_pin_{nullptr};
 
 };

@@ -5,7 +5,7 @@ from esphome.components import i2c
 from esphome.const import CONF_ID
 
 DEPENDENCIES = ["i2c"]
-AUTO_LOAD = ["binary_sensor"]
+AUTO_LOAD = ["binary_sensor", "output"]
 
 pico_epanel_ns = cg.esphome_ns.namespace("pico_epanel")
 

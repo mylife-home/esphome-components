@@ -1,4 +1,5 @@
 #include "controller.h"
+#include "output.h"
 #include "esphome/core/log.h"
 
 #define REG_CHECK 1
@@ -77,12 +78,26 @@ std::bitset<16> PicoEpanelController::read_inputs() {
     return 0;
   }
 
+  ESP_LOGD(TAG, "Read inputs %hu", data);
+
   return {data};
+}
+
+inline uint8_t color_ftou(float value) {
+  return static_cast<uint8_t>(value * 255);
+}
+
+void PicoEpanelController::set_output(PicoEpanelOutput *output) {
+  output->add_on_write_callback([&](uint8_t index, float value) {
+    this->write_output(index, color_ftou(value));
+  });
 }
 
 void PicoEpanelController::write_output(uint8_t index, uint8_t value) {
   uint16_t data = ((uint16_t)index << 8) | value;
   this->write_u16(REG_OUTPUTS, data);
+
+  ESP_LOGD(TAG, "Write output @ %d -> %d", index, value);
 }
 
 void PicoEpanelController::s_intr_pin_handler(PicoEpanelController *this_) {
