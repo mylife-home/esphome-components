@@ -88,7 +88,7 @@ inline uint8_t color_ftou(float value) {
 }
 
 void PicoEpanelController::set_output(PicoEpanelOutput *output, uint8_t index) {
-  output->add_on_write_callback([&](float value) {
+  output->add_on_write_callback([&, index](float value) {
     this->write_output(index, color_ftou(value));
   });
 }
