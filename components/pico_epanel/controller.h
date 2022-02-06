@@ -9,9 +9,11 @@
 
 #pragma once
 
+#include <bitset>
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
 #include "esphome/components/i2c/i2c.h"
+#include "esphome/components/binary_sensor/binary_sensor.h"
 
 namespace esphome {
 namespace pico_epanel {
@@ -25,19 +27,23 @@ public:
 
   void set_interrupt_pin(InternalGPIOPin *intr_pin) { intr_pin_ = intr_pin; }
 
+  void set_input(binary_sensor::BinarySensor *sensor, uint8_t index) { inputs_[index] = sensor; }
+  //void set_output
+
 private:
   bool read_u16(uint8_t reg, uint16_t *value);
   bool write_u16(uint8_t reg, uint16_t value);
 
-  uint16_t read_inputs();
+  std::bitset<16> read_inputs();
   void write_output(uint8_t index, uint8_t value);
 
   static void s_intr_pin_handler(PicoEpanelController *this_);
   void refresh_inputs();
 
-  uint16_t inputs_{0};
+  std::array<binary_sensor::BinarySensor *, 16> inputs_{{nullptr}};
   std::array<uint8_t, 16> outputs_{{0}};
   InternalGPIOPin *intr_pin_{nullptr};
+
 };
 
 }  // namespace pico_epanel

@@ -5,12 +5,15 @@ from esphome.components import i2c
 from esphome.const import CONF_ID
 
 DEPENDENCIES = ["i2c"]
+AUTO_LOAD = ["binary_sensor"]
 
 pico_epanel_ns = cg.esphome_ns.namespace("pico_epanel")
 
 PicoEpanelController = pico_epanel_ns.class_("PicoEpanelController", cg.Component, i2c.I2CDevice)
 
 CONF_INTERRUPT_PIN = "interrupt_pin"
+
+CONF_CONTROLLER_ID = "controller"
 
 CONFIG_SCHEMA = (
     cv.Schema(

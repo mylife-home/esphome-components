@@ -34,7 +34,7 @@ void PicoEpanelController::setup() {
   }
 
   // initial inputs state
-  this->inputs_ = this->read_inputs();
+  this->refresh_inputs();
 
   // setup interrupt pin
   this->intr_pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
@@ -71,13 +71,13 @@ bool PicoEpanelController::write_u16(uint8_t reg, const uint16_t value) {
   return false;
 }
 
-uint16_t PicoEpanelController::read_inputs() {
+std::bitset<16> PicoEpanelController::read_inputs() {
   uint16_t data;
   if (!this->read_u16(REG_INPUTS, &data)) {
     return 0;
   }
 
-  return data;
+  return {data};
 }
 
 void PicoEpanelController::write_output(uint8_t index, uint8_t value) {
@@ -92,15 +92,14 @@ void PicoEpanelController::s_intr_pin_handler(PicoEpanelController *this_) {
 }
 
 void PicoEpanelController::refresh_inputs() {
-  auto new_inputs = read_inputs();
-  if (new_inputs == this->inputs_) {
-    return;
+  auto values = read_inputs();
+
+  for (uint8_t index = 0; index < 16; ++index) {
+    auto sensor = inputs_[index];
+    if (sensor) {
+      sensor->publish_state(values.test(index));
+    }
   }
-
-  // TODO
-  ESP_LOGI(TAG, "Inputs change %hu -> %hu", this->inputs_, new_inputs);
-
-  this->inputs_ = new_inputs;
 }
 
 }  // namespace pico_epanel
