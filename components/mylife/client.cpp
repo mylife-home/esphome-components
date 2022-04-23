@@ -257,7 +257,7 @@ void MylifeClientComponent::check_cleaned() {
 
   this->resubscribe_subscriptions_();
 
-  online_callback_.call(true);
+  this->online_callback_.call(true);
 }
 
 void MylifeClientComponent::check_disconnected() {
@@ -315,7 +315,7 @@ void MylifeClientComponent::loop() {
   if (this->disconnect_reason_.has_value()) {
     log_disconnect(*this->disconnect_reason_);
     this->disconnect_reason_.reset();
-    online_callback_.call(false);
+    this->online_callback_.call(false);
   }
 
   switch (this->state_) {
