@@ -26,7 +26,7 @@ CONF_TIME = "time"
 from esphome.core import coroutine_with_priority
 
 
-DEPENDENCIES = ["network", "ota", "time"]
+DEPENDENCIES = ["network", "ota", "time", "mqtt"]
 AUTO_LOAD = ["json", "async_tcp"]
 
 mylife_ns = cg.esphome_ns.namespace("mylife")

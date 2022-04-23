@@ -11,7 +11,11 @@
 #include "esphome/components/network/ip_address.h"
 #include "esphome/components/time/real_time_clock.h"
 #include "esphome/components/ota/ota_component.h"
-#include <AsyncMqttClient.h>
+#if defined(USE_ESP_IDF)
+#include "esphome/components/mqtt/mqtt_backend_idf.h"
+#elif defined(USE_ARDUINO)
+#include "esphome/components/mqtt/mqtt_backend_arduino.h"
+#endif
 #include "lwip/ip_addr.h"
 #include <vector>
 #include <memory>
@@ -168,7 +172,11 @@ class MylifeClientComponent : public Component {
   std::string payload_buffer_;
 
   std::vector<Subscription> subscriptions_;
-  AsyncMqttClient mqtt_client_;
+#if defined(USE_ESP_IDF)
+  mqtt::MQTTBackendIDF mqtt_backend_;
+#elif defined(USE_ARDUINO)
+  mqtt::MQTTBackendArduino mqtt_backend_;
+#endif
   MQTTClientState state_{MQTT_CLIENT_DISCONNECTED};
   network::IPAddress ip_;
   bool dns_resolved_{false};
@@ -177,7 +185,7 @@ class MylifeClientComponent : public Component {
   uint32_t connect_begin_;
   uint32_t last_connected_{0};
   uint32_t start_clean_{0};
-  optional<AsyncMqttClientDisconnectReason> disconnect_reason_{};
+  optional<mqtt::MQTTClientDisconnectReason> disconnect_reason_{};
   CallbackManager<void(bool)> online_callback_{};
 
   std::vector<std::unique_ptr<MylifeController>> controllers_;

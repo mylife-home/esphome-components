@@ -44,8 +44,7 @@ void MylifeClientComponent::setup() {
 
   this->rpc_.serve_restart();
 
-  this->mqtt_client_.onMessage([this](char const *topic, char *payload, AsyncMqttClientMessageProperties properties,
-                                      size_t len, size_t index, size_t total) {
+  this->mqtt_backend_.set_on_message([this](char const *topic, const char *payload, size_t len, size_t index, size_t total) {
     if (index == 0)
       this->payload_buffer_.reserve(total);
 
@@ -59,7 +58,7 @@ void MylifeClientComponent::setup() {
     }
   });
 
-  this->mqtt_client_.onDisconnect([this](AsyncMqttClientDisconnectReason reason) {
+  this->mqtt_backend_.set_on_disconnect([this](mqtt::MQTTClientDisconnectReason reason) {
     this->state_ = MQTT_CLIENT_DISCONNECTED;
     this->disconnect_reason_ = reason;
   });
@@ -179,9 +178,9 @@ void MylifeClientComponent::start_connect_() {
 
   ESP_LOGI(TAG, "Connecting to MQTT...");
   // Force disconnect first
-  this->mqtt_client_.disconnect(true);
+  this->mqtt_backend_.disconnect();
 
-  this->mqtt_client_.setClientId(this->credentials_.client_id.c_str());
+  this->mqtt_backend_.set_client_id(this->credentials_.client_id.c_str());
   const char *username = nullptr;
   if (!this->credentials_.username.empty())
     username = this->credentials_.username.c_str();
@@ -189,31 +188,29 @@ void MylifeClientComponent::start_connect_() {
   if (!this->credentials_.password.empty())
     password = this->credentials_.password.c_str();
 
-  this->mqtt_client_.setCredentials(username, password);
+  this->mqtt_backend_.set_credentials(username, password);
 
-  this->mqtt_client_.setServer((uint32_t) this->ip_, this->credentials_.port);
+  this->mqtt_backend_.set_server((uint32_t) this->ip_, this->credentials_.port);
 
+  // Remove online
   auto will_topic = this->build_topic("online");
-  auto will_payload = Encoding::write_bool(false);
-  auto will_qos = 0;
-  auto will_retain = true;
-  this->mqtt_client_.setWill(will_topic.c_str(), will_qos, will_retain, will_payload.c_str(), will_payload.length());
+  this->mqtt_backend_.set_will(will_topic.c_str(), 0, true, "");
 
-  this->mqtt_client_.connect();
+  this->mqtt_backend_.connect();
   this->state_ = MQTT_CLIENT_CONNECTING;
   this->connect_begin_ = millis();
 }
 
 bool MylifeClientComponent::is_connected() {
-  return this->state_ == MQTT_CLIENT_CONNECTED && this->mqtt_client_.connected();
+  return this->state_ == MQTT_CLIENT_CONNECTED && this->mqtt_backend_.connected();
 }
 
 bool MylifeClientComponent::can_send() {
-  return (this->state_ == MQTT_CLIENT_CONNECTED || this->state_ ==  MQTT_CLIENT_CLEANING) && this->mqtt_client_.connected();
+  return (this->state_ == MQTT_CLIENT_CONNECTED || this->state_ ==  MQTT_CLIENT_CLEANING) && this->mqtt_backend_.connected();
 }
 
 void MylifeClientComponent::check_connected() {
-  if (!this->mqtt_client_.connected()) {
+  if (!this->mqtt_backend_.connected()) {
     if (millis() - this->connect_begin_ > 60000) {
       this->state_ = MQTT_CLIENT_DISCONNECTED;
       this->start_dnslookup_();
@@ -264,7 +261,7 @@ void MylifeClientComponent::check_cleaned() {
 }
 
 void MylifeClientComponent::check_disconnected() {
-  if (this->mqtt_client_.connected()) {
+  if (this->mqtt_backend_.connected()) {
     this->last_connected_ = millis();
     return;
   }
@@ -274,31 +271,31 @@ void MylifeClientComponent::check_disconnected() {
   this->start_dnslookup_();
 }
 
-static void log_disconnect(AsyncMqttClientDisconnectReason reason) {
+static void log_disconnect(mqtt::MQTTClientDisconnectReason reason) {
   const LogString *reason_s;
   switch (reason) {
-    case AsyncMqttClientDisconnectReason::TCP_DISCONNECTED:
+    case mqtt::MQTTClientDisconnectReason::TCP_DISCONNECTED:
       reason_s = LOG_STR("TCP disconnected");
       break;
-    case AsyncMqttClientDisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
+    case mqtt::MQTTClientDisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
       reason_s = LOG_STR("Unacceptable Protocol Version");
       break;
-    case AsyncMqttClientDisconnectReason::MQTT_IDENTIFIER_REJECTED:
+    case mqtt::MQTTClientDisconnectReason::MQTT_IDENTIFIER_REJECTED:
       reason_s = LOG_STR("Identifier Rejected");
       break;
-    case AsyncMqttClientDisconnectReason::MQTT_SERVER_UNAVAILABLE:
+    case mqtt::MQTTClientDisconnectReason::MQTT_SERVER_UNAVAILABLE:
       reason_s = LOG_STR("Server Unavailable");
       break;
-    case AsyncMqttClientDisconnectReason::MQTT_MALFORMED_CREDENTIALS:
+    case mqtt::MQTTClientDisconnectReason::MQTT_MALFORMED_CREDENTIALS:
       reason_s = LOG_STR("Malformed Credentials");
       break;
-    case AsyncMqttClientDisconnectReason::MQTT_NOT_AUTHORIZED:
+    case mqtt::MQTTClientDisconnectReason::MQTT_NOT_AUTHORIZED:
       reason_s = LOG_STR("Not Authorized");
       break;
-    case AsyncMqttClientDisconnectReason::ESP8266_NOT_ENOUGH_SPACE:
+    case mqtt::MQTTClientDisconnectReason::ESP8266_NOT_ENOUGH_SPACE:
       reason_s = LOG_STR("Not Enough Space");
       break;
-    case AsyncMqttClientDisconnectReason::TLS_BAD_FINGERPRINT:
+    case mqtt::MQTTClientDisconnectReason::TLS_BAD_FINGERPRINT:
       reason_s = LOG_STR("TLS Bad Fingerprint");
       break;
     default:
@@ -312,6 +309,9 @@ static void log_disconnect(AsyncMqttClientDisconnectReason reason) {
 }
 
 void MylifeClientComponent::loop() {
+  // Call the backend loop first
+  mqtt_backend_.loop();
+
   if (this->disconnect_reason_.has_value()) {
     log_disconnect(*this->disconnect_reason_);
     this->disconnect_reason_.reset();
@@ -362,7 +362,7 @@ bool MylifeClientComponent::subscribe_(const char *topic, uint8_t qos) {
   if (!this->can_send())
     return false;
 
-  uint16_t ret = this->mqtt_client_.subscribe(topic, qos);
+  uint16_t ret = this->mqtt_backend_.subscribe(topic, qos);
   yield();
 
   if (ret != 0) {
@@ -407,7 +407,7 @@ void MylifeClientComponent::subscribe(const std::string &topic, subscription_cal
 }
 
 void MylifeClientComponent::unsubscribe(const std::string &topic) {
-  uint16_t ret = this->mqtt_client_.unsubscribe(topic.c_str());
+  uint16_t ret = this->mqtt_backend_.unsubscribe(topic.c_str());
   yield();
   if (ret != 0) {
     ESP_LOGV(TAG, "unsubscribe(topic='%s')", topic.c_str());
@@ -441,7 +441,7 @@ bool MylifeClientComponent::publish(const std::string &topic, const char *payloa
   // Try 10 times with more and more delay
   constexpr int max_tries = 10;
   for (int try_index=0; try_index<max_tries; ++try_index) {
-    bool ret = !!this->mqtt_client_.publish(topic.c_str(), qos, retain, payload, payload_length);
+    bool ret = !!this->mqtt_backend_.publish(topic.c_str(), payload, payload_length, qos, retain);
     if (ret || !this->can_send()) {
       return ret;
     }
@@ -529,7 +529,7 @@ void MylifeClientComponent::on_message(const std::string &topic, const std::stri
 
 // Setters
 void MylifeClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
-void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_client_.setKeepAlive(keep_alive_s); }
+void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
 void MylifeClientComponent::set_rtc(time::RealTimeClock *rtc) { this->logger_.set_rtc(rtc); }
 void MylifeClientComponent::set_ota(ota::OTAComponent *ota) { this->rpc_.set_ota(ota); }
 
@@ -553,7 +553,7 @@ void MylifeClientComponent::on_shutdown() {
   yield();
   this->publish_online(false);
   yield();
-  this->mqtt_client_.disconnect(true);
+  this->mqtt_backend_.disconnect();
 }
 
 }  // namespace mylife
