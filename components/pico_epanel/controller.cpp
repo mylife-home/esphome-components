@@ -94,6 +94,10 @@ void PicoEpanelController::set_output(PicoEpanelOutput *output, uint8_t index) {
 }
 
 void PicoEpanelController::write_output(uint8_t index, uint8_t value) {
+  if (this->is_failed()) {
+    return;
+  }
+
   uint16_t data = ((uint16_t)index << 8) | value;
   this->write_u16(REG_OUTPUTS, data);
 
