@@ -11,6 +11,13 @@
 #include "lwip/err.h"
 #include "lwip/dns.h"
 
+#ifdef USE_LOGGER
+#ifdef USE_MQTT_STUB
+#include "esphome/components/logger/logger.h"
+#include "esphome/components/mqtt/mqtt_config.h"
+#endif
+#endif
+
 #include "controller.h"
 #include "controller_factory.h"
 #include "encoding.h"
@@ -62,6 +69,27 @@ void MylifeClientComponent::setup() {
     this->state_ = MQTT_CLIENT_DISCONNECTED;
     this->disconnect_reason_ = reason;
   });
+
+#ifdef USE_MQTT_STUB
+#ifdef USE_LOGGER
+  auto stub_config = mqtt::global_mqtt_client;
+
+  if (stub_config && stub_config->is_log_message_enabled() && logger::global_logger != nullptr) {
+    logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
+      auto stub_config = mqtt::global_mqtt_client;
+
+      if (level <= stub_config->get_log_level() && this->is_connected()) {
+        const auto &log_message = stub_config->get_log_message();
+        this->publish({.topic = log_message.topic,
+                       .payload = message,
+                       .qos = log_message.qos,
+                       .retain = log_message.retain});
+      }
+    });
+  }
+
+#endif // USE_LOGGER
+#endif // USE_MQTT_STUB
 
   this->last_connected_ = millis();
   this->start_dnslookup_();
