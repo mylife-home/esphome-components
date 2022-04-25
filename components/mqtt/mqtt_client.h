@@ -229,8 +229,6 @@ class MQTTClientComponent : public Component {
 
   void set_reboot_timeout(uint32_t reboot_timeout);
 
-  void register_mqtt_component(MQTTComponent *component);
-
   bool is_connected();
 
   void on_shutdown() override;
@@ -294,7 +292,6 @@ class MQTTClientComponent : public Component {
   network::IPAddress ip_;
   bool dns_resolved_{false};
   bool dns_resolve_error_{false};
-  std::vector<MQTTComponent *> children_;
   uint32_t reboot_timeout_{300000};
   uint32_t connect_begin_;
   uint32_t last_connected_{0};

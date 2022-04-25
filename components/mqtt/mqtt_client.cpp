@@ -12,7 +12,6 @@
 #endif
 #include "lwip/err.h"
 #include "lwip/dns.h"
-#include "mqtt_component.h"
 
 namespace esphome {
 namespace mqtt {
@@ -218,9 +217,6 @@ void MQTTClientComponent::check_connected() {
   delay(100);  // NOLINT
 
   this->resubscribe_subscriptions_();
-
-  for (MQTTComponent *component : this->children_)
-    component->schedule_resend_state();
 }
 
 void MQTTClientComponent::loop() {
@@ -503,7 +499,6 @@ void MQTTClientComponent::on_message(const std::string &topic, const std::string
 void MQTTClientComponent::disable_log_message() { this->log_message_.topic = ""; }
 bool MQTTClientComponent::is_log_message_enabled() const { return !this->log_message_.topic.empty(); }
 void MQTTClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
-void MQTTClientComponent::register_mqtt_component(MQTTComponent *component) { this->children_.push_back(component); }
 void MQTTClientComponent::set_log_level(int level) { this->log_level_ = level; }
 void MQTTClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
 void MQTTClientComponent::set_log_message_template(MQTTMessage &&message) { this->log_message_ = std::move(message); }
