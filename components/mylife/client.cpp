@@ -271,9 +271,7 @@ void MylifeClientComponent::check_cleaned() {
   ESP_LOGI(TAG, "MQTT Connected!");
 
   this->publish_online(true);
-
   this->last_connected_ = millis();
-
   this->resubscribe_subscriptions_();
   
   // this->online_callback_.call(true);
@@ -339,11 +337,9 @@ void MylifeClientComponent::loop() {
     // this->online_callback_.call(false);
   }
 
-  const uint32_t now = millis();
-
   switch (this->state_) {
     case MQTT_CLIENT_DISCONNECTED:
-      if (now - this->connect_begin_ > 5000) {
+      if (millis() - this->connect_begin_ > 5000) {
         this->start_dnslookup_();
       }
       break;
@@ -358,18 +354,6 @@ void MylifeClientComponent::loop() {
       break;
     case MQTT_CLIENT_CONNECTED:
       this->check_disconnected();
-      if (!this->mqtt_backend_.connected()) {
-        this->state_ = MQTT_CLIENT_DISCONNECTED;
-        ESP_LOGW(TAG, "Lost MQTT Client connection!");
-        this->start_dnslookup_();
-      } else {
-        if (!this->birth_message_.topic.empty() && !this->sent_birth_message_) {
-          this->sent_birth_message_ = this->publish(this->birth_message_);
-        }
-
-        this->last_connected_ = now;
-        this->resubscribe_subscriptions_();
-      }
       break;
   }
 
@@ -378,6 +362,7 @@ void MylifeClientComponent::loop() {
     App.reboot();
   }
 }
+
 float MylifeClientComponent::get_setup_priority() const { return setup_priority::AFTER_WIFI; }
 
 void MylifeClientComponent::publish_online(bool online) {
