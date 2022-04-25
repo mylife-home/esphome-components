@@ -405,25 +405,6 @@ MQTT_PUBLISH_JSON_ACTION_SCHEMA = cv.Schema(
 )
 
 
-@automation.register_action(
-    "mqtt.publish_json", MQTTPublishJsonAction, MQTT_PUBLISH_JSON_ACTION_SCHEMA
-)
-async def mqtt_publish_json_action_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    var = cg.new_Pvariable(action_id, template_arg, paren)
-    template_ = await cg.templatable(config[CONF_TOPIC], args, cg.std_string)
-    cg.add(var.set_topic(template_))
-
-    args_ = args + [(cg.JsonObject, "root")]
-    lambda_ = await cg.process_lambda(config[CONF_PAYLOAD], args_, return_type=cg.void)
-    cg.add(var.set_payload(lambda_))
-    template_ = await cg.templatable(config[CONF_QOS], args, cg.uint8)
-    cg.add(var.set_qos(template_))
-    template_ = await cg.templatable(config[CONF_RETAIN], args, bool)
-    cg.add(var.set_retain(template_))
-    return var
-
-
 def get_default_topic_for(data, component_type, name, suffix):
     allowlist = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
     sanitized_name = "".join(
@@ -434,17 +415,3 @@ def get_default_topic_for(data, component_type, name, suffix):
 
 async def register_mqtt_component(var, config):
     pass
-
-
-@automation.register_condition(
-    "mqtt.connected",
-    MQTTConnectedCondition,
-    cv.Schema(
-        {
-            cv.GenerateID(): cv.use_id(MQTTClientComponent),
-        }
-    ),
-)
-async def mqtt_connected_to_code(config, condition_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    return cg.new_Pvariable(condition_id, template_arg, paren)

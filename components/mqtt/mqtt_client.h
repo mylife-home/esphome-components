@@ -10,9 +10,9 @@
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/ip_address.h"
 #if defined(USE_ESP_IDF)
-#include "mqtt_backend_idf.h"
+#include "esphome/components/mqtt/mqtt_backend_idf.h"
 #elif defined(USE_ARDUINO)
-#include "mqtt_backend_arduino.h"
+#include "esphome/components/mqtt/mqtt_backend_arduino.h"
 #endif
 #include "lwip/ip_addr.h"
 
@@ -299,79 +299,6 @@ class MQTTClientComponent : public Component {
 };
 
 extern MQTTClientComponent *global_mqtt_client;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-
-class MQTTMessageTrigger : public Trigger<std::string>, public Component {
- public:
-  explicit MQTTMessageTrigger(std::string topic);
-
-  void set_qos(uint8_t qos);
-  void set_payload(const std::string &payload);
-  void setup() override;
-  void dump_config() override;
-  float get_setup_priority() const override;
-
- protected:
-  std::string topic_;
-  uint8_t qos_{0};
-  optional<std::string> payload_;
-};
-
-class MQTTJsonMessageTrigger : public Trigger<JsonObjectConst> {
- public:
-  explicit MQTTJsonMessageTrigger(const std::string &topic, uint8_t qos) {
-    global_mqtt_client->subscribe_json(
-        topic, [this](const std::string &topic, JsonObject root) { this->trigger(root); }, qos);
-  }
-};
-
-template<typename... Ts> class MQTTPublishAction : public Action<Ts...> {
- public:
-  MQTTPublishAction(MQTTClientComponent *parent) : parent_(parent) {}
-  TEMPLATABLE_VALUE(std::string, topic)
-  TEMPLATABLE_VALUE(std::string, payload)
-  TEMPLATABLE_VALUE(uint8_t, qos)
-  TEMPLATABLE_VALUE(bool, retain)
-
-  void play(Ts... x) override {
-    this->parent_->publish(this->topic_.value(x...), this->payload_.value(x...), this->qos_.value(x...),
-                           this->retain_.value(x...));
-  }
-
- protected:
-  MQTTClientComponent *parent_;
-};
-
-template<typename... Ts> class MQTTPublishJsonAction : public Action<Ts...> {
- public:
-  MQTTPublishJsonAction(MQTTClientComponent *parent) : parent_(parent) {}
-  TEMPLATABLE_VALUE(std::string, topic)
-  TEMPLATABLE_VALUE(uint8_t, qos)
-  TEMPLATABLE_VALUE(bool, retain)
-
-  void set_payload(std::function<void(Ts..., JsonObject)> payload) { this->payload_ = payload; }
-
-  void play(Ts... x) override {
-    auto f = std::bind(&MQTTPublishJsonAction<Ts...>::encode_, this, x..., std::placeholders::_1);
-    auto topic = this->topic_.value(x...);
-    auto qos = this->qos_.value(x...);
-    auto retain = this->retain_.value(x...);
-    this->parent_->publish_json(topic, f, qos, retain);
-  }
-
- protected:
-  void encode_(Ts... x, JsonObject root) { this->payload_(x..., root); }
-  std::function<void(Ts..., JsonObject)> payload_;
-  MQTTClientComponent *parent_;
-};
-
-template<typename... Ts> class MQTTConnectedCondition : public Condition<Ts...> {
- public:
-  MQTTConnectedCondition(MQTTClientComponent *parent) : parent_(parent) {}
-  bool check(Ts... x) override { return this->parent_->is_connected(); }
-
- protected:
-  MQTTClientComponent *parent_;
-};
 
 }  // namespace mqtt
 }  // namespace esphome
