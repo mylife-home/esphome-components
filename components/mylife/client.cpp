@@ -7,6 +7,7 @@
 #include "esphome/core/log.h"
 #include "esphome/components/network/util.h"
 #include <utility>
+#include <sstream>
 #ifdef USE_LOGGER
 #ifdef USE_MQTT_STUB
 #include "esphome/components/logger/logger.h"
@@ -15,6 +16,8 @@
 #endif
 #include "lwip/err.h"
 #include "lwip/dns.h"
+
+#include "encoding.h"
 
 namespace esphome {
 namespace mylife {
@@ -57,7 +60,7 @@ void MylifeClientComponent::setup() {
     logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
       auto stub_config = mqtt::global_mqtt_client;
 
-      if (level <= stub_config->get_log_level() && this->is_connected()) {
+      if (level <= stub_config->get_log_level() && this->can_send()) {
         const auto &log_message = stub_config->get_log_message();
         this->publish({.topic = log_message.topic,
                        .payload = message,
@@ -207,6 +210,10 @@ bool MylifeClientComponent::is_connected() {
   return this->state_ == MQTT_CLIENT_CONNECTED && this->mqtt_backend_.connected();
 }
 
+bool MylifeClientComponent::can_send() {
+  return (this->state_ == MQTT_CLIENT_CONNECTED || this->state_ ==  MQTT_CLIENT_CLEANING) && this->mqtt_backend_.connected();
+}
+
 void MylifeClientComponent::check_connected() {
   if (!this->mqtt_backend_.connected()) {
     if (millis() - this->connect_begin_ > 60000) {
@@ -216,14 +223,110 @@ void MylifeClientComponent::check_connected() {
     return;
   }
 
-  this->state_ = MQTT_CLIENT_CONNECTED;
-  this->sent_birth_message_ = false;
-  this->status_clear_warning();
-  ESP_LOGI(TAG, "MQTT Connected!");
   // MQTT Client needs some time to be fully set up.
   delay(100);  // NOLINT
 
+///////////
+  this->state_ = MQTT_CLIENT_CONNECTED;
+  this->status_clear_warning();
+  ESP_LOGI(TAG, "MQTT Connected!");
+
+  this->publish_online(true);
+
+  this->last_connected_ = millis();
+
   this->resubscribe_subscriptions_();
+
+return;
+///////////
+
+  // explicitly mark online so that we don't have inconsistent state while cleaning (plugin removed before component)
+  this->publish_online(false);
+
+  // init clean
+  this->state_ = MQTT_CLIENT_CLEANING;
+  this->start_clean_ = millis();
+
+  // clean all message for 2 secs
+  ESP_LOGD(TAG, "MQTT Cleaning");
+  this->subscribe(this->build_topic("#"), [this](const std::string &topic, const std::string &payload) {
+    if (payload.size() > 0) {
+      ESP_LOGD(TAG, "MQTT Cleaning '%s'", topic.c_str());
+      this->publish(topic, nullptr, 0, 0, true);
+    }
+  });
+}
+
+void MylifeClientComponent::check_cleaned() {
+  // wait 2 secs
+  if (millis() - this->start_clean_ < 2000) {
+    return;
+  }
+
+  this->unsubscribe(this->build_topic("#"));
+  ESP_LOGD(TAG, "MQTT Cleaned");
+
+  this->state_ = MQTT_CLIENT_CONNECTED;
+  this->status_clear_warning();
+  ESP_LOGI(TAG, "MQTT Connected!");
+
+  this->publish_online(true);
+
+  this->last_connected_ = millis();
+
+  this->resubscribe_subscriptions_();
+  
+  // this->online_callback_.call(true);
+}
+
+void MylifeClientComponent::check_disconnected() {
+  if (this->mqtt_backend_.connected()) {
+    this->last_connected_ = millis();
+    this->resubscribe_subscriptions_();
+    // publish online
+    return;
+  }
+
+  this->state_ = MQTT_CLIENT_DISCONNECTED;
+  ESP_LOGW(TAG, "Lost MQTT Client connection!");
+  this->start_dnslookup_();
+}
+
+static void log_disconnect(mqtt::MQTTClientDisconnectReason reason) {
+  const LogString *reason_s;
+  switch (reason) {
+    case mqtt::MQTTClientDisconnectReason::TCP_DISCONNECTED:
+      reason_s = LOG_STR("TCP disconnected");
+      break;
+    case mqtt::MQTTClientDisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
+      reason_s = LOG_STR("Unacceptable Protocol Version");
+      break;
+    case mqtt::MQTTClientDisconnectReason::MQTT_IDENTIFIER_REJECTED:
+      reason_s = LOG_STR("Identifier Rejected");
+      break;
+    case mqtt::MQTTClientDisconnectReason::MQTT_SERVER_UNAVAILABLE:
+      reason_s = LOG_STR("Server Unavailable");
+      break;
+    case mqtt::MQTTClientDisconnectReason::MQTT_MALFORMED_CREDENTIALS:
+      reason_s = LOG_STR("Malformed Credentials");
+      break;
+    case mqtt::MQTTClientDisconnectReason::MQTT_NOT_AUTHORIZED:
+      reason_s = LOG_STR("Not Authorized");
+      break;
+    case mqtt::MQTTClientDisconnectReason::ESP8266_NOT_ENOUGH_SPACE:
+      reason_s = LOG_STR("Not Enough Space");
+      break;
+    case mqtt::MQTTClientDisconnectReason::TLS_BAD_FINGERPRINT:
+      reason_s = LOG_STR("TLS Bad Fingerprint");
+      break;
+    default:
+      reason_s = LOG_STR("Unknown");
+      break;
+  }
+  if (!network::is_connected()) {
+    reason_s = LOG_STR("WiFi disconnected");
+  }
+  ESP_LOGW(TAG, "MQTT Disconnected: %s.", LOG_STR_ARG(reason_s));
 }
 
 void MylifeClientComponent::loop() {
@@ -231,41 +334,9 @@ void MylifeClientComponent::loop() {
   mqtt_backend_.loop();
 
   if (this->disconnect_reason_.has_value()) {
-    const LogString *reason_s;
-    switch (*this->disconnect_reason_) {
-      case mqtt::MQTTClientDisconnectReason::TCP_DISCONNECTED:
-        reason_s = LOG_STR("TCP disconnected");
-        break;
-      case mqtt::MQTTClientDisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
-        reason_s = LOG_STR("Unacceptable Protocol Version");
-        break;
-      case mqtt::MQTTClientDisconnectReason::MQTT_IDENTIFIER_REJECTED:
-        reason_s = LOG_STR("Identifier Rejected");
-        break;
-      case mqtt::MQTTClientDisconnectReason::MQTT_SERVER_UNAVAILABLE:
-        reason_s = LOG_STR("Server Unavailable");
-        break;
-      case mqtt::MQTTClientDisconnectReason::MQTT_MALFORMED_CREDENTIALS:
-        reason_s = LOG_STR("Malformed Credentials");
-        break;
-      case mqtt::MQTTClientDisconnectReason::MQTT_NOT_AUTHORIZED:
-        reason_s = LOG_STR("Not Authorized");
-        break;
-      case mqtt::MQTTClientDisconnectReason::ESP8266_NOT_ENOUGH_SPACE:
-        reason_s = LOG_STR("Not Enough Space");
-        break;
-      case mqtt::MQTTClientDisconnectReason::TLS_BAD_FINGERPRINT:
-        reason_s = LOG_STR("TLS Bad Fingerprint");
-        break;
-      default:
-        reason_s = LOG_STR("Unknown");
-        break;
-    }
-    if (!network::is_connected()) {
-      reason_s = LOG_STR("WiFi disconnected");
-    }
-    ESP_LOGW(TAG, "MQTT Disconnected: %s.", LOG_STR_ARG(reason_s));
+    log_disconnect(*this->disconnect_reason_);
     this->disconnect_reason_.reset();
+    // this->online_callback_.call(false);
   }
 
   const uint32_t now = millis();
@@ -282,7 +353,11 @@ void MylifeClientComponent::loop() {
     case MQTT_CLIENT_CONNECTING:
       this->check_connected();
       break;
+    case MQTT_CLIENT_CLEANING:
+      this->check_cleaned();
+      break;
     case MQTT_CLIENT_CONNECTED:
+      this->check_disconnected();
       if (!this->mqtt_backend_.connected()) {
         this->state_ = MQTT_CLIENT_DISCONNECTED;
         ESP_LOGW(TAG, "Lost MQTT Client connection!");
@@ -305,9 +380,20 @@ void MylifeClientComponent::loop() {
 }
 float MylifeClientComponent::get_setup_priority() const { return setup_priority::AFTER_WIFI; }
 
+void MylifeClientComponent::publish_online(bool online) {
+  auto topic = this->build_topic("online");
+  if (online) {
+    auto payload = Encoding::write_bool(true); 
+    this->publish(topic, payload, 0, true);
+  } else {
+    // offline => clear retain flag only
+    this->publish(topic, nullptr, 0, 0, true);
+  }
+}
+
 // Subscribe
 bool MylifeClientComponent::subscribe_(const char *topic, uint8_t qos) {
-  if (!this->is_connected())
+  if (!this->can_send())
     return false;
 
   bool ret = this->mqtt_backend_.subscribe(topic, qos);
@@ -391,7 +477,7 @@ bool MylifeClientComponent::publish(const mqtt::MQTTMessage &message) {
   bool logging_topic = this->log_message_.topic == message.topic;
   bool ret = this->mqtt_backend_.publish(message);
   delay(0);
-  if (!ret && !logging_topic && this->is_connected()) {
+  if (!ret && !logging_topic && this->can_send()) {
     delay(0);
     ret = this->mqtt_backend_.publish(message);
     delay(0);
@@ -485,6 +571,21 @@ void MylifeClientComponent::on_message(const std::string &topic, const std::stri
 // Setters
 void MylifeClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
 void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
+
+std::string MylifeClientComponent::build_topic(const std::string &suffix) const {
+  return App.get_name() + "-core/" + suffix;
+}
+
+std::string MylifeClientComponent::build_topic(std::initializer_list<std::string> suffix) const {
+  std::ostringstream topic_builder;
+
+  topic_builder << App.get_name() << "-core";
+  for (const auto item : suffix) {
+    topic_builder << "/" << item;
+  }
+
+  return topic_builder.str();
+}
 
 void MylifeClientComponent::on_shutdown() {
   if (!this->shutdown_message_.topic.empty()) {

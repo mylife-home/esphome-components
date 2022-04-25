@@ -47,6 +47,7 @@ enum MQTTClientState {
   MQTT_CLIENT_DISCONNECTED = 0,
   MQTT_CLIENT_RESOLVING_ADDRESS,
   MQTT_CLIENT_CONNECTING,
+  MQTT_CLIENT_CLEANING,
   MQTT_CLIENT_CONNECTED,
 };
 
@@ -123,10 +124,9 @@ class MylifeClientComponent : public Component {
 
   bool can_proceed() override;
 
-  void check_connected();
-
   void set_reboot_timeout(uint32_t reboot_timeout);
 
+  bool can_send();
   bool is_connected();
 
   void on_shutdown() override;
@@ -136,6 +136,9 @@ class MylifeClientComponent : public Component {
   void set_username(const std::string &username) { this->credentials_.username = username; }
   void set_password(const std::string &password) { this->credentials_.password = password; }
   void set_client_id(const std::string &client_id) { this->credentials_.client_id = client_id; }
+
+  std::string build_topic(const std::string &suffix) const;
+  std::string build_topic(std::initializer_list<std::string> suffix) const;
 
  protected:
   /// Reconnect to the MQTT broker if not already connected.
@@ -147,10 +150,15 @@ class MylifeClientComponent : public Component {
 #else
   static void dns_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg);
 #endif
+  void check_connected();
+  void check_cleaned();
+  void check_disconnected();
 
   bool subscribe_(const char *topic, uint8_t qos);
   void resubscribe_subscription_(Subscription *sub);
   void resubscribe_subscriptions_();
+
+  void publish_online(bool online);
 
   Credentials credentials_;
   /// The last will message. Disabled optional denotes it being default and
@@ -180,6 +188,7 @@ class MylifeClientComponent : public Component {
   uint32_t reboot_timeout_{300000};
   uint32_t connect_begin_;
   uint32_t last_connected_{0};
+  uint32_t start_clean_{0};
   optional<mqtt::MQTTClientDisconnectReason> disconnect_reason_{};
 };
 
