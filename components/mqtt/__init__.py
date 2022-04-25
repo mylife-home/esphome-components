@@ -49,10 +49,6 @@ DEPENDENCIES = ["network"]
 
 AUTO_LOAD = ["json"]
 
-CONF_IDF_SEND_ASYNC = "idf_send_async"
-CONF_SKIP_CERT_CN_CHECK = "skip_cert_cn_check"
-
-
 def validate_message_just_topic(value):
     value = cv.publish_topic(value)
     return MQTT_MESSAGE_BASE({CONF_TOPIC: value})
@@ -82,16 +78,6 @@ MQTT_MESSAGE_SCHEMA = cv.Any(
 mqtt_ns = cg.esphome_ns.namespace("mqtt")
 MQTTMessage = mqtt_ns.struct("MQTTMessage")
 MQTTClientComponent = mqtt_ns.class_("MQTTClientComponent", cg.Component)
-MQTTPublishAction = mqtt_ns.class_("MQTTPublishAction", automation.Action)
-MQTTPublishJsonAction = mqtt_ns.class_("MQTTPublishJsonAction", automation.Action)
-MQTTMessageTrigger = mqtt_ns.class_(
-    "MQTTMessageTrigger", automation.Trigger.template(cg.std_string), cg.Component
-)
-MQTTJsonMessageTrigger = mqtt_ns.class_(
-    "MQTTJsonMessageTrigger", automation.Trigger.template(cg.JsonObjectConst)
-)
-MQTTComponent = mqtt_ns.class_("MQTTComponent", cg.Component)
-MQTTConnectedCondition = mqtt_ns.class_("MQTTConnectedCondition", Condition)
 
 MQTTComponentStub = mqtt_ns.class_("MQTTComponentStub")
 
@@ -155,13 +141,6 @@ def validate_config(value):
     return out
 
 
-def validate_fingerprint(value):
-    value = cv.string(value)
-    if re.match(r"^[0-9a-f]{40}$", value) is None:
-        raise cv.Invalid("fingerprint must be valid SHA1 hash")
-    return value
-
-
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
@@ -171,15 +150,6 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_USERNAME, default=""): cv.string,
             cv.Optional(CONF_PASSWORD, default=""): cv.string,
             cv.Optional(CONF_CLIENT_ID): cv.string,
-            cv.SplitDefault(CONF_IDF_SEND_ASYNC, esp32_idf=False): cv.All(
-                cv.boolean, cv.only_with_esp_idf
-            ),
-            cv.Optional(CONF_CERTIFICATE_AUTHORITY): cv.All(
-                cv.string, cv.only_with_esp_idf
-            ),
-            cv.SplitDefault(CONF_SKIP_CERT_CN_CHECK, esp32_idf=False): cv.All(
-                cv.boolean, cv.only_with_esp_idf
-            ),
             cv.Optional(CONF_DISCOVERY, default=True): cv.Any(
                 cv.boolean, cv.one_of("CLEAN", upper=True)
             ),
@@ -207,30 +177,10 @@ CONFIG_SCHEMA = cv.All(
                 ),
                 validate_message_just_topic,
             ),
-            cv.Optional(CONF_SSL_FINGERPRINTS): cv.All(
-                cv.only_on_esp8266, cv.ensure_list(validate_fingerprint)
-            ),
             cv.Optional(CONF_KEEPALIVE, default="15s"): cv.positive_time_period_seconds,
             cv.Optional(
                 CONF_REBOOT_TIMEOUT, default="15min"
             ): cv.positive_time_period_milliseconds,
-            cv.Optional(CONF_ON_MESSAGE): automation.validate_automation(
-                {
-                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(MQTTMessageTrigger),
-                    cv.Required(CONF_TOPIC): cv.subscribe_topic,
-                    cv.Optional(CONF_QOS, default=0): cv.mqtt_qos,
-                    cv.Optional(CONF_PAYLOAD): cv.string_strict,
-                }
-            ),
-            cv.Optional(CONF_ON_JSON_MESSAGE): automation.validate_automation(
-                {
-                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
-                        MQTTJsonMessageTrigger
-                    ),
-                    cv.Required(CONF_TOPIC): cv.subscribe_topic,
-                    cv.Optional(CONF_QOS, default=0): cv.mqtt_qos,
-                }
-            ),
         }
     ),
     validate_config,
@@ -347,63 +297,7 @@ async def to_code(config):
         # prevent error -0x428e
         # See https://github.com/espressif/esp-idf/issues/139
         add_idf_sdkconfig_option("CONFIG_MBEDTLS_HARDWARE_MPI", False)
-
-    if CONF_IDF_SEND_ASYNC in config and config[CONF_IDF_SEND_ASYNC]:
-        cg.add_define("USE_MQTT_IDF_ENQUEUE")
     # end esp-idf
-
-    for conf in config.get(CONF_ON_MESSAGE, []):
-        trig = cg.new_Pvariable(conf[CONF_TRIGGER_ID], conf[CONF_TOPIC])
-        cg.add(trig.set_qos(conf[CONF_QOS]))
-        if CONF_PAYLOAD in conf:
-            cg.add(trig.set_payload(conf[CONF_PAYLOAD]))
-        await cg.register_component(trig, conf)
-        await automation.build_automation(trig, [(cg.std_string, "x")], conf)
-
-    for conf in config.get(CONF_ON_JSON_MESSAGE, []):
-        trig = cg.new_Pvariable(conf[CONF_TRIGGER_ID], conf[CONF_TOPIC], conf[CONF_QOS])
-        await automation.build_automation(trig, [(cg.JsonObjectConst, "x")], conf)
-
-
-MQTT_PUBLISH_ACTION_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(): cv.use_id(MQTTClientComponent),
-        cv.Required(CONF_TOPIC): cv.templatable(cv.publish_topic),
-        cv.Required(CONF_PAYLOAD): cv.templatable(cv.mqtt_payload),
-        cv.Optional(CONF_QOS, default=0): cv.templatable(cv.mqtt_qos),
-        cv.Optional(CONF_RETAIN, default=False): cv.templatable(cv.boolean),
-    }
-)
-
-
-@automation.register_action(
-    "mqtt.publish", MQTTPublishAction, MQTT_PUBLISH_ACTION_SCHEMA
-)
-async def mqtt_publish_action_to_code(config, action_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    var = cg.new_Pvariable(action_id, template_arg, paren)
-    template_ = await cg.templatable(config[CONF_TOPIC], args, cg.std_string)
-    cg.add(var.set_topic(template_))
-
-    template_ = await cg.templatable(config[CONF_PAYLOAD], args, cg.std_string)
-    cg.add(var.set_payload(template_))
-    template_ = await cg.templatable(config[CONF_QOS], args, cg.uint8)
-    cg.add(var.set_qos(template_))
-    template_ = await cg.templatable(config[CONF_RETAIN], args, bool)
-    cg.add(var.set_retain(template_))
-    return var
-
-
-MQTT_PUBLISH_JSON_ACTION_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(): cv.use_id(MQTTClientComponent),
-        cv.Required(CONF_TOPIC): cv.templatable(cv.publish_topic),
-        cv.Required(CONF_PAYLOAD): cv.lambda_,
-        cv.Optional(CONF_QOS, default=0): cv.templatable(cv.mqtt_qos),
-        cv.Optional(CONF_RETAIN, default=False): cv.templatable(cv.boolean),
-    }
-)
-
 
 def get_default_topic_for(data, component_type, name, suffix):
     allowlist = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
