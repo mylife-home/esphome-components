@@ -78,20 +78,7 @@ MQTT_MESSAGE_SCHEMA = cv.Any(
 mylife_ns = cg.esphome_ns.namespace("mylife")
 mqtt_ns = cg.esphome_ns.namespace("mqtt")
 MQTTMessage = mqtt_ns.struct("MQTTMessage")
-MQTTClientComponent = mylife_ns.class_("MQTTClientComponent", cg.Component)
-
-MQTTDiscoveryUniqueIdGenerator = mylife_ns.enum("MQTTDiscoveryUniqueIdGenerator")
-MQTT_DISCOVERY_UNIQUE_ID_GENERATOR_OPTIONS = {
-    "legacy": MQTTDiscoveryUniqueIdGenerator.MQTT_LEGACY_UNIQUE_ID_GENERATOR,
-    "mac": MQTTDiscoveryUniqueIdGenerator.MQTT_MAC_ADDRESS_UNIQUE_ID_GENERATOR,
-}
-
-MQTTDiscoveryObjectIdGenerator = mylife_ns.enum("MQTTDiscoveryObjectIdGenerator")
-MQTT_DISCOVERY_OBJECT_ID_GENERATOR_OPTIONS = {
-    "none": MQTTDiscoveryObjectIdGenerator.MQTT_NONE_OBJECT_ID_GENERATOR,
-    "device_name": MQTTDiscoveryObjectIdGenerator.MQTT_DEVICE_NAME_OBJECT_ID_GENERATOR,
-}
-
+MylifeClientComponent = mylife_ns.class_("MylifeClientComponent", cg.Component)
 
 def validate_config(value):
     # Populate default fields
@@ -130,7 +117,7 @@ def validate_config(value):
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(MQTTClientComponent),
+            cv.GenerateID(): cv.declare_id(MylifeClientComponent),
             cv.Required(CONF_BROKER): cv.string_strict,
             cv.Optional(CONF_PORT, default=1883): cv.port,
             cv.Optional(CONF_USERNAME, default=""): cv.string,
@@ -143,12 +130,6 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(
                 CONF_DISCOVERY_PREFIX, default="homeassistant"
             ): cv.publish_topic,
-            cv.Optional(CONF_DISCOVERY_UNIQUE_ID_GENERATOR, default="legacy"): cv.enum(
-                MQTT_DISCOVERY_UNIQUE_ID_GENERATOR_OPTIONS
-            ),
-            cv.Optional(CONF_DISCOVERY_OBJECT_ID_GENERATOR, default="none"): cv.enum(
-                MQTT_DISCOVERY_OBJECT_ID_GENERATOR_OPTIONS
-            ),
             cv.Optional(CONF_USE_ABBREVIATIONS, default=True): cv.boolean,
             cv.Optional(CONF_BIRTH_MESSAGE): MQTT_MESSAGE_SCHEMA,
             cv.Optional(CONF_WILL_MESSAGE): MQTT_MESSAGE_SCHEMA,

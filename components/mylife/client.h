@@ -23,14 +23,13 @@ namespace mylife {
  *
  * First parameter is the topic, the second one is the payload.
  */
-using mqtt_callback_t = std::function<void(const std::string &, const std::string &)>;
-using mqtt_json_callback_t = std::function<void(const std::string &, JsonObject)>;
+using subscription_callback_t = std::function<void(const std::string &, const std::string &)>;
 
 /// internal struct for MQTT subscriptions.
 struct MQTTSubscription {
   std::string topic;
   uint8_t qos;
-  mqtt_callback_t callback;
+  subscription_callback_t callback;
   bool subscribed;
   uint32_t resubscribe_timeout;
 };
@@ -51,9 +50,9 @@ enum MQTTClientState {
   MQTT_CLIENT_CONNECTED,
 };
 
-class MQTTClientComponent : public Component {
+class MylifeClientComponent : public Component {
  public:
-  MQTTClientComponent();
+  MylifeClientComponent();
 
   /// Set the last will testament message.
   void set_last_will(mqtt::MQTTMessage &&message);
@@ -116,25 +115,14 @@ class MQTTClientComponent : public Component {
    * @param callback The callback function.
    * @param qos The QoS of this subscription.
    */
-  void subscribe(const std::string &topic, mqtt_callback_t callback, uint8_t qos = 0);
-
-  /** Subscribe to a MQTT topic and automatically parse JSON payload.
-   *
-   * If an invalid JSON payload is received, the callback will not be called.
-   *
-   * @param topic The topic. Wildcards are currently not supported.
-   * @param callback The callback with a parsed JsonObject that will be called when a message with matching topic is
-   * received.
-   * @param qos The QoS of this subscription.
-   */
-  void subscribe_json(const std::string &topic, const mqtt_json_callback_t &callback, uint8_t qos = 0);
+  void subscribe(const std::string &topic, subscription_callback_t callback, uint8_t qos = 0);
 
   /** Unsubscribe from an MQTT topic.
    *
    * If multiple existing subscriptions to the same topic exist, all of them will be removed.
    *
    * @param topic The topic to unsubscribe from.
-   * Must match the topic in the original subscribe or subscribe_json call exactly.
+   * Must match the topic in the original subscribe call exactly.
    */
   void unsubscribe(const std::string &topic);
 
@@ -235,7 +223,7 @@ class MQTTClientComponent : public Component {
   optional<mqtt::MQTTClientDisconnectReason> disconnect_reason_{};
 };
 
-extern MQTTClientComponent *global_mylife_client;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+extern MylifeClientComponent *global_mylife_client;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 }  // namespace mylife
 }  // namespace esphome
