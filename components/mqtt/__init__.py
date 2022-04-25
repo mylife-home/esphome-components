@@ -81,19 +81,6 @@ MQTTClientComponent = mqtt_ns.class_("MQTTClientComponent", cg.Component)
 
 MQTTComponentStub = mqtt_ns.class_("MQTTComponentStub")
 
-MQTTBinarySensorComponent = MQTTComponentStub
-MQTTClimateComponent = MQTTComponentStub
-MQTTCoverComponent = MQTTComponentStub
-MQTTFanComponent = MQTTComponentStub
-MQTTJSONLightComponent = MQTTComponentStub
-MQTTSensorComponent = MQTTComponentStub
-MQTTSwitchComponent = MQTTComponentStub
-MQTTTextSensor = MQTTComponentStub
-MQTTNumberComponent = MQTTComponentStub
-MQTTSelectComponent = MQTTComponentStub
-MQTTButtonComponent = MQTTComponentStub
-MQTTLockComponent = MQTTComponentStub
-
 MQTTDiscoveryUniqueIdGenerator = mqtt_ns.enum("MQTTDiscoveryUniqueIdGenerator")
 MQTT_DISCOVERY_UNIQUE_ID_GENERATOR_OPTIONS = {
     "legacy": MQTTDiscoveryUniqueIdGenerator.MQTT_LEGACY_UNIQUE_ID_GENERATOR,
@@ -306,6 +293,18 @@ def get_default_topic_for(data, component_type, name, suffix):
     )
     return f"{data.topic_prefix}/{component_type}/{sanitized_name}/{suffix}"
 
+MQTTBinarySensorComponent = MQTTComponentStub
+MQTTClimateComponent = MQTTComponentStub
+MQTTCoverComponent = MQTTComponentStub
+MQTTFanComponent = MQTTComponentStub
+MQTTJSONLightComponent = MQTTComponentStub
+MQTTSensorComponent = MQTTComponentStub
+MQTTSwitchComponent = MQTTComponentStub
+MQTTTextSensor = MQTTComponentStub
+MQTTNumberComponent = MQTTComponentStub
+MQTTSelectComponent = MQTTComponentStub
+MQTTButtonComponent = MQTTComponentStub
+MQTTLockComponent = MQTTComponentStub
 
 async def register_mqtt_component(var, config):
     pass
