@@ -93,18 +93,20 @@ MQTTJsonMessageTrigger = mqtt_ns.class_(
 MQTTComponent = mqtt_ns.class_("MQTTComponent", cg.Component)
 MQTTConnectedCondition = mqtt_ns.class_("MQTTConnectedCondition", Condition)
 
-MQTTBinarySensorComponent = mqtt_ns.class_("MQTTBinarySensorComponent", MQTTComponent)
-MQTTClimateComponent = mqtt_ns.class_("MQTTClimateComponent", MQTTComponent)
-MQTTCoverComponent = mqtt_ns.class_("MQTTCoverComponent", MQTTComponent)
-MQTTFanComponent = mqtt_ns.class_("MQTTFanComponent", MQTTComponent)
-MQTTJSONLightComponent = mqtt_ns.class_("MQTTJSONLightComponent", MQTTComponent)
-MQTTSensorComponent = mqtt_ns.class_("MQTTSensorComponent", MQTTComponent)
-MQTTSwitchComponent = mqtt_ns.class_("MQTTSwitchComponent", MQTTComponent)
-MQTTTextSensor = mqtt_ns.class_("MQTTTextSensor", MQTTComponent)
-MQTTNumberComponent = mqtt_ns.class_("MQTTNumberComponent", MQTTComponent)
-MQTTSelectComponent = mqtt_ns.class_("MQTTSelectComponent", MQTTComponent)
-MQTTButtonComponent = mqtt_ns.class_("MQTTButtonComponent", MQTTComponent)
-MQTTLockComponent = mqtt_ns.class_("MQTTLockComponent", MQTTComponent)
+MQTTComponentStub = mqtt_ns.class_("MQTTComponentStub")
+
+MQTTBinarySensorComponent = MQTTComponentStub
+MQTTClimateComponent = MQTTComponentStub
+MQTTCoverComponent = MQTTComponentStub
+MQTTFanComponent = MQTTComponentStub
+MQTTJSONLightComponent = MQTTComponentStub
+MQTTSensorComponent = MQTTComponentStub
+MQTTSwitchComponent = MQTTComponentStub
+MQTTTextSensor = MQTTComponentStub
+MQTTNumberComponent = MQTTComponentStub
+MQTTSelectComponent = MQTTComponentStub
+MQTTButtonComponent = MQTTComponentStub
+MQTTLockComponent = MQTTComponentStub
 
 MQTTDiscoveryUniqueIdGenerator = mqtt_ns.enum("MQTTDiscoveryUniqueIdGenerator")
 MQTT_DISCOVERY_UNIQUE_ID_GENERATOR_OPTIONS = {
@@ -431,30 +433,7 @@ def get_default_topic_for(data, component_type, name, suffix):
 
 
 async def register_mqtt_component(var, config):
-    await cg.register_component(var, {})
-
-    if CONF_RETAIN in config:
-        cg.add(var.set_retain(config[CONF_RETAIN]))
-    if not config.get(CONF_DISCOVERY, True):
-        cg.add(var.disable_discovery())
-    if CONF_STATE_TOPIC in config:
-        cg.add(var.set_custom_state_topic(config[CONF_STATE_TOPIC]))
-    if CONF_COMMAND_TOPIC in config:
-        cg.add(var.set_custom_command_topic(config[CONF_COMMAND_TOPIC]))
-    if CONF_COMMAND_RETAIN in config:
-        cg.add(var.set_command_retain(config[CONF_COMMAND_RETAIN]))
-    if CONF_AVAILABILITY in config:
-        availability = config[CONF_AVAILABILITY]
-        if not availability:
-            cg.add(var.disable_availability())
-        else:
-            cg.add(
-                var.set_availability(
-                    availability[CONF_TOPIC],
-                    availability[CONF_PAYLOAD_AVAILABLE],
-                    availability[CONF_PAYLOAD_NOT_AVAILABLE],
-                )
-            )
+    pass
 
 
 @automation.register_condition(
