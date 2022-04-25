@@ -9,52 +9,34 @@
 #include "esphome/core/log.h"
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/ip_address.h"
-#include "esphome/components/time/real_time_clock.h"
-#include "esphome/components/ota/ota_component.h"
 #if defined(USE_ESP_IDF)
 #include "esphome/components/mqtt/mqtt_backend_idf.h"
 #elif defined(USE_ARDUINO)
 #include "esphome/components/mqtt/mqtt_backend_arduino.h"
 #endif
 #include "lwip/ip_addr.h"
-#include <vector>
-#include <memory>
-#include <set>
-#include "metadata.h"
-#include "logger.h"
-#include "rpc.h"
 
 namespace esphome {
 namespace mylife {
-
-class MylifeController;
-struct PluginDefinition;
 
 /** Callback for MQTT subscriptions.
  *
  * First parameter is the topic, the second one is the payload.
  */
-using subscription_callback_t = std::function<void(const std::string &, const std::string &)>;
-
-/// internal struct for MQTT messages.
-struct Message {
-  std::string topic;
-  std::string payload;
-  uint8_t qos;  ///< QoS. Only for last will testaments.
-  bool retain;
-};
+using mqtt_callback_t = std::function<void(const std::string &, const std::string &)>;
+using mqtt_json_callback_t = std::function<void(const std::string &, JsonObject)>;
 
 /// internal struct for MQTT subscriptions.
-struct Subscription {
+struct MQTTSubscription {
   std::string topic;
   uint8_t qos;
-  subscription_callback_t callback;
+  mqtt_callback_t callback;
   bool subscribed;
   uint32_t resubscribe_timeout;
 };
 
 /// internal struct for MQTT credentials.
-struct Credentials {
+struct MQTTCredentials {
   std::string address;  ///< The address of the server without port number
   uint16_t port;        ///< The port number of the server.
   std::string username;
@@ -62,26 +44,79 @@ struct Credentials {
   std::string client_id;  ///< The client ID. Will automatically be truncated to 23 characters.
 };
 
+/// Simple data struct for Home Assistant component availability.
+struct Availability {
+  std::string topic;  ///< Empty means disabled
+  std::string payload_available;
+  std::string payload_not_available;
+};
+
 enum MQTTClientState {
   MQTT_CLIENT_DISCONNECTED = 0,
   MQTT_CLIENT_RESOLVING_ADDRESS,
   MQTT_CLIENT_CONNECTING,
-  MQTT_CLIENT_CLEANING,
   MQTT_CLIENT_CONNECTED,
 };
 
-class MylifeClientComponent : public Component {
+class MQTTClientComponent : public Component {
  public:
-  MylifeClientComponent();
+  MQTTClientComponent();
 
-  /** Add a callback to be notified of online changes.
-   *
-   * @param callback The void(bool) callback.
-   */
-  void add_on_online_callback(std::function<void(bool)> &&callback);
+  /// Set the last will testament message.
+  void set_last_will(mqtt::MQTTMessage &&message);
+  /// Remove the last will testament message.
+  void disable_last_will();
+
+  /// Set the birth message.
+  void set_birth_message(mqtt::MQTTMessage &&message);
+  /// Remove the birth message.
+  void disable_birth_message();
+
+  void set_shutdown_message(mqtt::MQTTMessage &&message);
+  void disable_shutdown_message();
 
   /// Set the keep alive time in seconds, every 0.7*keep_alive a ping will be sent.
   void set_keep_alive(uint16_t keep_alive_s);
+
+#if ASYNC_TCP_SSL_ENABLED
+  /** Add a SSL fingerprint to use for TCP SSL connections to the MQTT broker.
+   *
+   * To use this feature you first have to globally enable the `ASYNC_TCP_SSL_ENABLED` define flag.
+   * This function can be called multiple times and any certificate that matches any of the provided fingerprints
+   * will match. Calling this method will also automatically disable all non-ssl connections.
+   *
+   * @warning This is *not* secure and *not* how SSL is usually done. You'll have to add
+   *          a separate fingerprint for every certificate you use. Additionally, the hashing
+   *          algorithm used here due to the constraints of the MCU, SHA1, is known to be insecure.
+   *
+   * @param fingerprint The SSL fingerprint as a 20 value long std::array.
+   */
+  void add_ssl_fingerprint(const std::array<uint8_t, SHA1_SIZE> &fingerprint);
+#endif
+#ifdef USE_ESP_IDF
+  void set_ca_certificate(const char *cert) { this->mqtt_backend_.set_ca_certificate(cert); }
+  void set_skip_cert_cn_check(bool skip_check) { this->mqtt_backend_.set_skip_cert_cn_check(skip_check); }
+#endif
+  const Availability &get_availability();
+
+  /** Set the topic prefix that will be prepended to all topics together with "/". This will, in most cases,
+   * be the name of your Application.
+   *
+   * For example, if "livingroom" is passed to this method, all state topics will, by default, look like
+   * "livingroom/.../state"
+   *
+   * @param topic_prefix The topic prefix. The last "/" is appended automatically.
+   */
+  void set_topic_prefix(const std::string &topic_prefix);
+  /// Get the topic prefix of this device, using default if necessary
+  const std::string &get_topic_prefix() const;
+
+  /// Manually set the topic used for logging.
+  void set_log_message_template(mqtt::MQTTMessage &&message);
+  void set_log_level(int level);
+  /// Get the topic used for logging. Defaults to "<topic_prefix>/debug" and the value is cached for speed.
+  void disable_log_message();
+  bool is_log_message_enabled() const;
 
   /** Subscribe to an MQTT topic and call callback when a message is received.
    *
@@ -89,7 +124,18 @@ class MylifeClientComponent : public Component {
    * @param callback The callback function.
    * @param qos The QoS of this subscription.
    */
-  void subscribe(const std::string &topic, subscription_callback_t callback, uint8_t qos = 0);
+  void subscribe(const std::string &topic, mqtt_callback_t callback, uint8_t qos = 0);
+
+  /** Subscribe to a MQTT topic and automatically parse JSON payload.
+   *
+   * If an invalid JSON payload is received, the callback will not be called.
+   *
+   * @param topic The topic. Wildcards are currently not supported.
+   * @param callback The callback with a parsed JsonObject that will be called when a message with matching topic is
+   * received.
+   * @param qos The QoS of this subscription.
+   */
+  void subscribe_json(const std::string &topic, const mqtt_json_callback_t &callback, uint8_t qos = 0);
 
   /** Unsubscribe from an MQTT topic.
    *
@@ -100,11 +146,11 @@ class MylifeClientComponent : public Component {
    */
   void unsubscribe(const std::string &topic);
 
-  /** Publish a Message
+  /** Publish a mqtt::MQTTMessage
    *
    * @param message The message.
    */
-  bool publish(const Message &message);
+  bool publish(const mqtt::MQTTMessage &message);
 
   /** Publish a MQTT message
    *
@@ -116,6 +162,14 @@ class MylifeClientComponent : public Component {
 
   bool publish(const std::string &topic, const char *payload, size_t payload_length, uint8_t qos = 0,
                bool retain = false);
+
+  /** Construct and send a JSON MQTT message.
+   *
+   * @param topic The topic.
+   * @param f The Json Message builder.
+   * @param retain Whether to retain the message.
+   */
+  bool publish_json(const std::string &topic, const json::json_build_t &f, uint8_t qos = 0, bool retain = false);
 
   /// Setup the MQTT client, registering a bunch of callbacks and attempting to connect.
   void setup() override;
@@ -129,6 +183,8 @@ class MylifeClientComponent : public Component {
 
   bool can_proceed() override;
 
+  void check_connected();
+
   void set_reboot_timeout(uint32_t reboot_timeout);
 
   bool is_connected();
@@ -141,12 +197,6 @@ class MylifeClientComponent : public Component {
   void set_password(const std::string &password) { this->credentials_.password = password; }
   void set_client_id(const std::string &client_id) { this->credentials_.client_id = client_id; }
 
-  void set_rtc(time::RealTimeClock *rtc);
-  void set_ota(ota::OTAComponent *ota);
-
-  std::string build_topic(const std::string &suffix) const;
-  std::string build_topic(std::initializer_list<std::string> suffix) const;
-
  protected:
   /// Reconnect to the MQTT broker if not already connected.
   void start_connect_();
@@ -157,26 +207,37 @@ class MylifeClientComponent : public Component {
 #else
   static void dns_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg);
 #endif
-  void check_connected();
-  void check_cleaned();
-  void check_disconnected();
+
+  /// Re-calculate the availability property.
+  void recalculate_availability_();
 
   bool subscribe_(const char *topic, uint8_t qos);
-  void resubscribe_subscription_(Subscription *sub);
+  void resubscribe_subscription_(MQTTSubscription *sub);
   void resubscribe_subscriptions_();
 
-  bool can_send();
-  void publish_online(bool online);
-
-  Credentials credentials_;
+  MQTTCredentials credentials_;
+  /// The last will message. Disabled optional denotes it being default and
+  /// an empty topic denotes the the feature being disabled.
+  mqtt::MQTTMessage last_will_;
+  /// The birth message (e.g. the message that's send on an established connection.
+  /// See last_will_ for what different values denote.
+  mqtt::MQTTMessage birth_message_;
+  bool sent_birth_message_{false};
+  mqtt::MQTTMessage shutdown_message_;
+  /// Caches availability.
+  Availability availability_{};
+  std::string topic_prefix_{};
+  mqtt::MQTTMessage log_message_;
   std::string payload_buffer_;
+  int log_level_{ESPHOME_LOG_LEVEL};
 
-  std::vector<Subscription> subscriptions_;
+  std::vector<MQTTSubscription> subscriptions_;
 #if defined(USE_ESP_IDF)
   mqtt::MQTTBackendIDF mqtt_backend_;
 #elif defined(USE_ARDUINO)
   mqtt::MQTTBackendArduino mqtt_backend_;
 #endif
+
   MQTTClientState state_{MQTT_CLIENT_DISCONNECTED};
   network::IPAddress ip_;
   bool dns_resolved_{false};
@@ -184,15 +245,10 @@ class MylifeClientComponent : public Component {
   uint32_t reboot_timeout_{300000};
   uint32_t connect_begin_;
   uint32_t last_connected_{0};
-  uint32_t start_clean_{0};
   optional<mqtt::MQTTClientDisconnectReason> disconnect_reason_{};
-  CallbackManager<void(bool)> online_callback_{};
-
-  std::vector<std::unique_ptr<MylifeController>> controllers_;
-  Metadata metadata_;
-  Logger logger_;
-  Rpc rpc_;
 };
+
+extern MQTTClientComponent *global_mylife_client;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 }  // namespace mylife
 }  // namespace esphome

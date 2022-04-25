@@ -7,110 +7,76 @@
 #include "esphome/core/log.h"
 #include "esphome/components/network/util.h"
 #include <utility>
-#include <sstream>
+#ifdef USE_LOGGER
+#include "esphome/components/logger/logger.h"
+#endif
 #include "lwip/err.h"
 #include "lwip/dns.h"
-
-#ifdef USE_LOGGER
-#ifdef USE_MQTT_STUB
-#include "esphome/components/logger/logger.h"
-#include "esphome/components/mqtt/mqtt_config.h"
-#endif
-#endif
-
-#include "controller.h"
-#include "controller_factory.h"
-#include "encoding.h"
 
 namespace esphome {
 namespace mylife {
 
 static const char *const TAG = "mylife";
 
-MylifeClientComponent::MylifeClientComponent()
- : metadata_(this)
- , logger_(this)
- , rpc_(this) {
-  this->credentials_.client_id = App.get_name() + "-" + get_mac_address() + "-mylife";
-}
-
-void MylifeClientComponent::add_on_online_callback(std::function<void(bool)> &&callback) {
-  this->online_callback_.add(std::move(callback));
+MQTTClientComponent::MQTTClientComponent() {
+  global_mylife_client = this;
+  this->credentials_.client_id = App.get_name() + "-" + get_mac_address();
 }
 
 // Connection
-void MylifeClientComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up Mylife...");
+void MQTTClientComponent::setup() {
+  ESP_LOGCONFIG(TAG, "Setting up MQTT...");
+  this->mqtt_backend_.set_on_message(
+      [this](const char *topic, const char *payload, size_t len, size_t index, size_t total) {
+        if (index == 0)
+          this->payload_buffer_.reserve(total);
 
-  this->controllers_ = MylifeControllerFactory::build(this);
-  this->metadata_.build_plugins(controllers_);
-  
-  this->set_interval(60000, [this]() {
-    this->metadata_.update();
-  });
+        // append new payload, may contain incomplete MQTT message
+        this->payload_buffer_.append(payload, len);
 
-  this->rpc_.serve_restart();
-
-  this->mqtt_backend_.set_on_message([this](char const *topic, const char *payload, size_t len, size_t index, size_t total) {
-    if (index == 0)
-      this->payload_buffer_.reserve(total);
-
-    // append new payload, may contain incomplete MQTT message
-    this->payload_buffer_.append(payload, len);
-
-    // MQTT fully received
-    if (len + index == total) {
-      this->on_message(topic, this->payload_buffer_);
-      this->payload_buffer_.clear();
-    }
-  });
-
+        // MQTT fully received
+        if (len + index == total) {
+          this->on_message(topic, this->payload_buffer_);
+          this->payload_buffer_.clear();
+        }
+      });
   this->mqtt_backend_.set_on_disconnect([this](mqtt::MQTTClientDisconnectReason reason) {
     this->state_ = MQTT_CLIENT_DISCONNECTED;
     this->disconnect_reason_ = reason;
   });
-
-#ifdef USE_MQTT_STUB
 #ifdef USE_LOGGER
-  auto stub_config = mqtt::global_mqtt_client;
-
-  if (stub_config && stub_config->is_log_message_enabled() && logger::global_logger != nullptr) {
+  if (this->is_log_message_enabled() && logger::global_logger != nullptr) {
     logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
-      auto stub_config = mqtt::global_mqtt_client;
-
-      if (level <= stub_config->get_log_level() && this->is_connected()) {
-        const auto &log_message = stub_config->get_log_message();
-        this->publish({.topic = log_message.topic,
+      if (level <= this->log_level_ && this->is_connected()) {
+        this->publish({.topic = this->log_message_.topic,
                        .payload = message,
-                       .qos = log_message.qos,
-                       .retain = log_message.retain});
+                       .qos = this->log_message_.qos,
+                       .retain = this->log_message_.retain});
       }
     });
   }
-
-#endif // USE_LOGGER
-#endif // USE_MQTT_STUB
+#endif
 
   this->last_connected_ = millis();
   this->start_dnslookup_();
 }
-
-void MylifeClientComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "Mylife:");
+void MQTTClientComponent::dump_config() {
+  ESP_LOGCONFIG(TAG, "MQTT:");
   ESP_LOGCONFIG(TAG, "  Server Address: %s:%u (%s)", this->credentials_.address.c_str(), this->credentials_.port,
                 this->ip_.str().c_str());
   ESP_LOGCONFIG(TAG, "  Username: " LOG_SECRET("'%s'"), this->credentials_.username.c_str());
   ESP_LOGCONFIG(TAG, "  Client ID: " LOG_SECRET("'%s'"), this->credentials_.client_id.c_str());
-  ESP_LOGCONFIG(TAG, "  Components:");
-
-  for (const auto &controller : controllers_) {
-    ESP_LOGCONFIG(TAG, "    %s (plugin: %s)", controller->get_component_id().c_str(), controller->get_plugin_metadata()->id.c_str());
+  ESP_LOGCONFIG(TAG, "  Topic Prefix: '%s'", this->topic_prefix_.c_str());
+  if (!this->log_message_.topic.empty()) {
+    ESP_LOGCONFIG(TAG, "  Log Topic: '%s'", this->log_message_.topic.c_str());
+  }
+  if (!this->availability_.topic.empty()) {
+    ESP_LOGCONFIG(TAG, "  Availability: '%s'", this->availability_.topic.c_str());
   }
 }
+bool MQTTClientComponent::can_proceed() { return this->is_connected(); }
 
-bool MylifeClientComponent::can_proceed() { return this->is_connected(); }
-
-void MylifeClientComponent::start_dnslookup_() {
+void MQTTClientComponent::start_dnslookup_() {
   for (auto &subscription : this->subscriptions_) {
     subscription.subscribed = false;
     subscription.resubscribe_timeout = 0;
@@ -122,11 +88,11 @@ void MylifeClientComponent::start_dnslookup_() {
   ip_addr_t addr;
 #ifdef USE_ESP32
   err_t err = dns_gethostbyname_addrtype(this->credentials_.address.c_str(), &addr,
-                                         MylifeClientComponent::dns_found_callback, this, LWIP_DNS_ADDRTYPE_IPV4);
+                                         MQTTClientComponent::dns_found_callback, this, LWIP_DNS_ADDRTYPE_IPV4);
 #endif
 #ifdef USE_ESP8266
   err_t err = dns_gethostbyname(this->credentials_.address.c_str(), &addr,
-                                esphome::mylife::MylifeClientComponent::dns_found_callback, this);
+                                esphome::mqtt::MQTTClientComponent::dns_found_callback, this);
 #endif
   switch (err) {
     case ERR_OK: {
@@ -161,8 +127,7 @@ void MylifeClientComponent::start_dnslookup_() {
   this->state_ = MQTT_CLIENT_RESOLVING_ADDRESS;
   this->connect_begin_ = millis();
 }
-
-void MylifeClientComponent::check_dnslookup_() {
+void MQTTClientComponent::check_dnslookup_() {
   if (!this->dns_resolved_ && millis() - this->connect_begin_ > 20000) {
     this->dns_resolve_error_ = true;
   }
@@ -180,13 +145,12 @@ void MylifeClientComponent::check_dnslookup_() {
   ESP_LOGD(TAG, "Resolved broker IP address to %s", this->ip_.str().c_str());
   this->start_connect_();
 }
-
 #if defined(USE_ESP8266) && LWIP_VERSION_MAJOR == 1
-void MylifeClientComponent::dns_found_callback(const char *name, ip_addr_t *ipaddr, void *callback_arg) {
+void MQTTClientComponent::dns_found_callback(const char *name, ip_addr_t *ipaddr, void *callback_arg) {
 #else
-void MylifeClientComponent::dns_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg) {
+void MQTTClientComponent::dns_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg) {
 #endif
-  auto *a_this = (MylifeClientComponent *) callback_arg;
+  auto *a_this = (MQTTClientComponent *) callback_arg;
   if (ipaddr == nullptr) {
     a_this->dns_resolve_error_ = true;
   } else {
@@ -200,7 +164,7 @@ void MylifeClientComponent::dns_found_callback(const char *name, const ip_addr_t
   }
 }
 
-void MylifeClientComponent::start_connect_() {
+void MQTTClientComponent::start_connect_() {
   if (!network::is_connected())
     return;
 
@@ -219,25 +183,20 @@ void MylifeClientComponent::start_connect_() {
   this->mqtt_backend_.set_credentials(username, password);
 
   this->mqtt_backend_.set_server((uint32_t) this->ip_, this->credentials_.port);
-
-  // Remove online
-  auto will_topic = this->build_topic("online");
-  this->mqtt_backend_.set_will(will_topic.c_str(), 0, true, "");
+  if (!this->last_will_.topic.empty()) {
+    this->mqtt_backend_.set_will(this->last_will_.topic.c_str(), this->last_will_.qos, this->last_will_.retain,
+                                 this->last_will_.payload.c_str());
+  }
 
   this->mqtt_backend_.connect();
   this->state_ = MQTT_CLIENT_CONNECTING;
   this->connect_begin_ = millis();
 }
-
-bool MylifeClientComponent::is_connected() {
+bool MQTTClientComponent::is_connected() {
   return this->state_ == MQTT_CLIENT_CONNECTED && this->mqtt_backend_.connected();
 }
 
-bool MylifeClientComponent::can_send() {
-  return (this->state_ == MQTT_CLIENT_CONNECTED || this->state_ ==  MQTT_CLIENT_CLEANING) && this->mqtt_backend_.connected();
-}
-
-void MylifeClientComponent::check_connected() {
+void MQTTClientComponent::check_connected() {
   if (!this->mqtt_backend_.connected()) {
     if (millis() - this->connect_begin_ > 60000) {
       this->state_ = MQTT_CLIENT_DISCONNECTED;
@@ -246,109 +205,63 @@ void MylifeClientComponent::check_connected() {
     return;
   }
 
+  this->state_ = MQTT_CLIENT_CONNECTED;
+  this->sent_birth_message_ = false;
+  this->status_clear_warning();
+  ESP_LOGI(TAG, "MQTT Connected!");
   // MQTT Client needs some time to be fully set up.
   delay(100);  // NOLINT
 
-  // explicitly mark online so that we don't have inconsistent state while cleaning (plugin removed before component)
-  this->publish_online(false);
-
-  // init clean
-  this->state_ = MQTT_CLIENT_CLEANING;
-  this->start_clean_ = millis();
-
-  // clean all message for 2 secs
-  ESP_LOGD(TAG, "MQTT Cleaning");
-  this->subscribe(this->build_topic("#"), [this](const std::string &topic, const std::string &payload) {
-    if (payload.size() > 0) {
-      ESP_LOGD(TAG, "MQTT Cleaning '%s'", topic.c_str());
-      this->publish(topic, nullptr, 0, 0, true);
-    }
-  });
-}
-
-void MylifeClientComponent::check_cleaned() {
-  // wait 2 secs
-  if (millis() - this->start_clean_ < 2000) {
-    return;
-  }
-
-  this->unsubscribe(this->build_topic("#"));
-  ESP_LOGD(TAG, "MQTT Cleaned");
-
-  this->state_ = MQTT_CLIENT_CONNECTED;
-  this->status_clear_warning();
-  ESP_LOGI(TAG, "MQTT Connected!");
-
-  this->publish_online(true);
-
-  this->last_connected_ = millis();
-
   this->resubscribe_subscriptions_();
-
-  this->online_callback_.call(true);
 }
 
-void MylifeClientComponent::check_disconnected() {
-  if (this->mqtt_backend_.connected()) {
-    this->last_connected_ = millis();
-    return;
-  }
-
-  this->state_ = MQTT_CLIENT_DISCONNECTED;
-  ESP_LOGW(TAG, "Lost MQTT Client connection!");
-  this->start_dnslookup_();
-}
-
-static void log_disconnect(mqtt::MQTTClientDisconnectReason reason) {
-  const LogString *reason_s;
-  switch (reason) {
-    case mqtt::MQTTClientDisconnectReason::TCP_DISCONNECTED:
-      reason_s = LOG_STR("TCP disconnected");
-      break;
-    case mqtt::MQTTClientDisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
-      reason_s = LOG_STR("Unacceptable Protocol Version");
-      break;
-    case mqtt::MQTTClientDisconnectReason::MQTT_IDENTIFIER_REJECTED:
-      reason_s = LOG_STR("Identifier Rejected");
-      break;
-    case mqtt::MQTTClientDisconnectReason::MQTT_SERVER_UNAVAILABLE:
-      reason_s = LOG_STR("Server Unavailable");
-      break;
-    case mqtt::MQTTClientDisconnectReason::MQTT_MALFORMED_CREDENTIALS:
-      reason_s = LOG_STR("Malformed Credentials");
-      break;
-    case mqtt::MQTTClientDisconnectReason::MQTT_NOT_AUTHORIZED:
-      reason_s = LOG_STR("Not Authorized");
-      break;
-    case mqtt::MQTTClientDisconnectReason::ESP8266_NOT_ENOUGH_SPACE:
-      reason_s = LOG_STR("Not Enough Space");
-      break;
-    case mqtt::MQTTClientDisconnectReason::TLS_BAD_FINGERPRINT:
-      reason_s = LOG_STR("TLS Bad Fingerprint");
-      break;
-    default:
-      reason_s = LOG_STR("Unknown");
-      break;
-  }
-  if (!network::is_connected()) {
-    reason_s = LOG_STR("WiFi disconnected");
-  }
-  ESP_LOGW(TAG, "MQTT Disconnected: %s.", LOG_STR_ARG(reason_s));
-}
-
-void MylifeClientComponent::loop() {
+void MQTTClientComponent::loop() {
   // Call the backend loop first
   mqtt_backend_.loop();
 
   if (this->disconnect_reason_.has_value()) {
-    log_disconnect(*this->disconnect_reason_);
+    const LogString *reason_s;
+    switch (*this->disconnect_reason_) {
+      case mqtt::MQTTClientDisconnectReason::TCP_DISCONNECTED:
+        reason_s = LOG_STR("TCP disconnected");
+        break;
+      case mqtt::MQTTClientDisconnectReason::MQTT_UNACCEPTABLE_PROTOCOL_VERSION:
+        reason_s = LOG_STR("Unacceptable Protocol Version");
+        break;
+      case mqtt::MQTTClientDisconnectReason::MQTT_IDENTIFIER_REJECTED:
+        reason_s = LOG_STR("Identifier Rejected");
+        break;
+      case mqtt::MQTTClientDisconnectReason::MQTT_SERVER_UNAVAILABLE:
+        reason_s = LOG_STR("Server Unavailable");
+        break;
+      case mqtt::MQTTClientDisconnectReason::MQTT_MALFORMED_CREDENTIALS:
+        reason_s = LOG_STR("Malformed Credentials");
+        break;
+      case mqtt::MQTTClientDisconnectReason::MQTT_NOT_AUTHORIZED:
+        reason_s = LOG_STR("Not Authorized");
+        break;
+      case mqtt::MQTTClientDisconnectReason::ESP8266_NOT_ENOUGH_SPACE:
+        reason_s = LOG_STR("Not Enough Space");
+        break;
+      case mqtt::MQTTClientDisconnectReason::TLS_BAD_FINGERPRINT:
+        reason_s = LOG_STR("TLS Bad Fingerprint");
+        break;
+      default:
+        reason_s = LOG_STR("Unknown");
+        break;
+    }
+    if (!network::is_connected()) {
+      reason_s = LOG_STR("WiFi disconnected");
+    }
+    ESP_LOGW(TAG, "MQTT Disconnected: %s.", LOG_STR_ARG(reason_s));
     this->disconnect_reason_.reset();
-    this->online_callback_.call(false);
   }
+
+  const uint32_t now = millis();
 
   switch (this->state_) {
     case MQTT_CLIENT_DISCONNECTED:
-      if (millis() - this->connect_begin_ > 5000) {
+      if (now - this->connect_begin_ > 5000) {
         this->start_dnslookup_();
       }
       break;
@@ -358,11 +271,19 @@ void MylifeClientComponent::loop() {
     case MQTT_CLIENT_CONNECTING:
       this->check_connected();
       break;
-    case MQTT_CLIENT_CLEANING:
-      this->check_cleaned();
-      break;
     case MQTT_CLIENT_CONNECTED:
-      this->check_disconnected();
+      if (!this->mqtt_backend_.connected()) {
+        this->state_ = MQTT_CLIENT_DISCONNECTED;
+        ESP_LOGW(TAG, "Lost MQTT Client connection!");
+        this->start_dnslookup_();
+      } else {
+        if (!this->birth_message_.topic.empty() && !this->sent_birth_message_) {
+          this->sent_birth_message_ = this->publish(this->birth_message_);
+        }
+
+        this->last_connected_ = now;
+        this->resubscribe_subscriptions_();
+      }
       break;
   }
 
@@ -371,29 +292,17 @@ void MylifeClientComponent::loop() {
     App.reboot();
   }
 }
-
-float MylifeClientComponent::get_setup_priority() const { return setup_priority::AFTER_WIFI; }
-
-void MylifeClientComponent::publish_online(bool online) {
-  auto topic = this->build_topic("online");
-  if (online) {
-    auto payload = Encoding::write_bool(true); 
-    this->publish(topic, payload, 0, true);
-  } else {
-    // offline => clear retain flag only
-    this->publish(topic, nullptr, 0, 0, true);
-  }
-}
+float MQTTClientComponent::get_setup_priority() const { return setup_priority::AFTER_WIFI; }
 
 // Subscribe
-bool MylifeClientComponent::subscribe_(const char *topic, uint8_t qos) {
-  if (!this->can_send())
+bool MQTTClientComponent::subscribe_(const char *topic, uint8_t qos) {
+  if (!this->is_connected())
     return false;
 
-  uint16_t ret = this->mqtt_backend_.subscribe(topic, qos);
+  bool ret = this->mqtt_backend_.subscribe(topic, qos);
   yield();
 
-  if (ret != 0) {
+  if (ret) {
     ESP_LOGV(TAG, "subscribe(topic='%s')", topic);
   } else {
     delay(5);
@@ -402,8 +311,7 @@ bool MylifeClientComponent::subscribe_(const char *topic, uint8_t qos) {
   }
   return ret != 0;
 }
-
-void MylifeClientComponent::resubscribe_subscription_(Subscription *sub) {
+void MQTTClientComponent::resubscribe_subscription_(MQTTSubscription *sub) {
   if (sub->subscribed)
     return;
 
@@ -415,15 +323,14 @@ void MylifeClientComponent::resubscribe_subscription_(Subscription *sub) {
     sub->resubscribe_timeout = now;
   }
 }
-
-void MylifeClientComponent::resubscribe_subscriptions_() {
+void MQTTClientComponent::resubscribe_subscriptions_() {
   for (auto &subscription : this->subscriptions_) {
     this->resubscribe_subscription_(&subscription);
   }
 }
 
-void MylifeClientComponent::subscribe(const std::string &topic, subscription_callback_t callback, uint8_t qos) {
-  Subscription subscription{
+void MQTTClientComponent::subscribe(const std::string &topic, mqtt_callback_t callback, uint8_t qos) {
+  MQTTSubscription subscription{
       .topic = topic,
       .qos = qos,
       .callback = std::move(callback),
@@ -434,10 +341,25 @@ void MylifeClientComponent::subscribe(const std::string &topic, subscription_cal
   this->subscriptions_.push_back(subscription);
 }
 
-void MylifeClientComponent::unsubscribe(const std::string &topic) {
-  uint16_t ret = this->mqtt_backend_.unsubscribe(topic.c_str());
+void MQTTClientComponent::subscribe_json(const std::string &topic, const mqtt_json_callback_t &callback, uint8_t qos) {
+  auto f = [callback](const std::string &topic, const std::string &payload) {
+    json::parse_json(payload, [topic, callback](JsonObject root) { callback(topic, root); });
+  };
+  MQTTSubscription subscription{
+      .topic = topic,
+      .qos = qos,
+      .callback = f,
+      .subscribed = false,
+      .resubscribe_timeout = 0,
+  };
+  this->resubscribe_subscription_(&subscription);
+  this->subscriptions_.push_back(subscription);
+}
+
+void MQTTClientComponent::unsubscribe(const std::string &topic) {
+  bool ret = this->mqtt_backend_.unsubscribe(topic.c_str());
   yield();
-  if (ret != 0) {
+  if (ret) {
     ESP_LOGV(TAG, "unsubscribe(topic='%s')", topic.c_str());
   } else {
     delay(5);
@@ -447,41 +369,54 @@ void MylifeClientComponent::unsubscribe(const std::string &topic) {
 
   auto it = subscriptions_.begin();
   while (it != subscriptions_.end()) {
-    if (it->topic == topic)
+    if (it->topic == topic) {
       it = subscriptions_.erase(it);
-    else
+    } else {
       ++it;
+    }
   }
 }
 
 // Publish
-bool MylifeClientComponent::publish(const std::string &topic, const std::string &payload, uint8_t qos, bool retain) {
+bool MQTTClientComponent::publish(const std::string &topic, const std::string &payload, uint8_t qos, bool retain) {
   return this->publish(topic, payload.data(), payload.size(), qos, retain);
 }
 
-bool MylifeClientComponent::publish(const std::string &topic, const char *payload, size_t payload_length, uint8_t qos,
+bool MQTTClientComponent::publish(const std::string &topic, const char *payload, size_t payload_length, uint8_t qos,
                                   bool retain) {
-  if (!this->can_send()) {
+  return publish({.topic = topic, .payload = payload, .qos = qos, .retain = retain});
+}
+
+bool MQTTClientComponent::publish(const mqtt::MQTTMessage &message) {
+  if (!this->is_connected()) {
     // critical components will re-transmit their messages
     return false;
   }
-
-  // Try 10 times with more and more delay
-  constexpr int max_tries = 10;
-  for (int try_index=0; try_index<max_tries; ++try_index) {
-    bool ret = !!this->mqtt_backend_.publish(topic.c_str(), payload, payload_length, qos, retain);
-    if (ret || !this->can_send()) {
-      return ret;
-    }
-
-    delay(try_index * 10);
+  bool logging_topic = this->log_message_.topic == message.topic;
+  bool ret = this->mqtt_backend_.publish(message);
+  delay(0);
+  if (!ret && !logging_topic && this->is_connected()) {
+    delay(0);
+    ret = this->mqtt_backend_.publish(message);
+    delay(0);
   }
 
-  return false;
+  if (!logging_topic) {
+    if (ret) {
+      ESP_LOGV(TAG, "Publish(topic='%s' payload='%s' retain=%d)", message.topic.c_str(), message.payload.c_str(),
+               message.retain);
+    } else {
+      ESP_LOGV(TAG, "Publish failed for topic='%s' (len=%u). will retry later..", message.topic.c_str(),
+               message.payload.length());
+      this->status_momentary_warning("publish", 1000);
+    }
+  }
+  return ret != 0;
 }
-
-bool MylifeClientComponent::publish(const Message &message) {
-  return this->publish(message.topic, message.payload, message.qos, message.retain);
+bool MQTTClientComponent::publish_json(const std::string &topic, const json::json_build_t &f, uint8_t qos,
+                                       bool retain) {
+  std::string message = json::build_json(f);
+  return this->publish(topic, message, qos, retain);
 }
 
 /** Check if the message topic matches the given subscription topic
@@ -541,48 +476,80 @@ static bool topic_match(const char *message, const char *subscription) {
   return topic_match(message, subscription, *message != '\0' && *message != '$', false);
 }
 
-void MylifeClientComponent::on_message(const std::string &topic, const std::string &payload) {
+void MQTTClientComponent::on_message(const std::string &topic, const std::string &payload) {
 #ifdef USE_ESP8266
   // on ESP8266, this is called in LWiP thread; some components do not like running
   // in an ISR.
   this->defer([this, topic, payload]() {
 #endif
-    for (auto &subscription : this->subscriptions_)
+    for (auto &subscription : this->subscriptions_) {
       if (topic_match(topic.c_str(), subscription.topic.c_str()))
         subscription.callback(topic, payload);
+    }
 #ifdef USE_ESP8266
   });
 #endif
 }
 
 // Setters
-void MylifeClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
-void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
-void MylifeClientComponent::set_rtc(time::RealTimeClock *rtc) { this->logger_.set_rtc(rtc); }
-void MylifeClientComponent::set_ota(ota::OTAComponent *ota) { this->rpc_.set_ota(ota); }
-
-std::string MylifeClientComponent::build_topic(const std::string &suffix) const {
-  return App.get_name() + "-core/" + suffix;
+void MQTTClientComponent::disable_log_message() { this->log_message_.topic = ""; }
+bool MQTTClientComponent::is_log_message_enabled() const { return !this->log_message_.topic.empty(); }
+void MQTTClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
+void MQTTClientComponent::set_log_level(int level) { this->log_level_ = level; }
+void MQTTClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
+void MQTTClientComponent::set_log_message_template(mqtt::MQTTMessage &&message) { this->log_message_ = std::move(message); }
+void MQTTClientComponent::set_topic_prefix(const std::string &topic_prefix) { this->topic_prefix_ = topic_prefix; }
+const std::string &MQTTClientComponent::get_topic_prefix() const { return this->topic_prefix_; }
+void MQTTClientComponent::disable_birth_message() {
+  this->birth_message_.topic = "";
+  this->recalculate_availability_();
 }
-
-std::string MylifeClientComponent::build_topic(std::initializer_list<std::string> suffix) const {
-  std::ostringstream topic_builder;
-
-  topic_builder << App.get_name() << "-core";
-  for (const auto item : suffix) {
-    topic_builder << "/" << item;
+void MQTTClientComponent::disable_shutdown_message() {
+  this->shutdown_message_.topic = "";
+  this->recalculate_availability_();
+}
+const Availability &MQTTClientComponent::get_availability() { return this->availability_; }
+void MQTTClientComponent::recalculate_availability_() {
+  if (this->birth_message_.topic.empty() || this->birth_message_.topic != this->last_will_.topic) {
+    this->availability_.topic = "";
+    return;
   }
-
-  return topic_builder.str();
+  this->availability_.topic = this->birth_message_.topic;
+  this->availability_.payload_available = this->birth_message_.payload;
+  this->availability_.payload_not_available = this->last_will_.payload;
 }
 
+void MQTTClientComponent::set_last_will(mqtt::MQTTMessage &&message) {
+  this->last_will_ = std::move(message);
+  this->recalculate_availability_();
+}
 
-void MylifeClientComponent::on_shutdown() {
-  yield();
-  this->publish_online(false);
-  yield();
+void MQTTClientComponent::set_birth_message(mqtt::MQTTMessage &&message) {
+  this->birth_message_ = std::move(message);
+  this->recalculate_availability_();
+}
+
+void MQTTClientComponent::set_shutdown_message(mqtt::MQTTMessage &&message) { this->shutdown_message_ = std::move(message); }
+
+void MQTTClientComponent::disable_last_will() { this->last_will_.topic = ""; }
+
+void MQTTClientComponent::on_shutdown() {
+  if (!this->shutdown_message_.topic.empty()) {
+    yield();
+    this->publish(this->shutdown_message_);
+    yield();
+  }
   this->mqtt_backend_.disconnect();
 }
+
+#if ASYNC_TCP_SSL_ENABLED
+void MQTTClientComponent::add_ssl_fingerprint(const std::array<uint8_t, SHA1_SIZE> &fingerprint) {
+  this->mqtt_backend_.setSecure(true);
+  this->mqtt_backend_.addServerFingerprint(fingerprint.data());
+}
+#endif
+
+MQTTClientComponent *global_mylife_client = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 }  // namespace mylife
 }  // namespace esphome
