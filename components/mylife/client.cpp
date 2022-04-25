@@ -322,7 +322,7 @@ bool MylifeClientComponent::subscribe_(const char *topic, uint8_t qos) {
   }
   return ret != 0;
 }
-void MylifeClientComponent::resubscribe_subscription_(MQTTSubscription *sub) {
+void MylifeClientComponent::resubscribe_subscription_(Subscription *sub) {
   if (sub->subscribed)
     return;
 
@@ -341,7 +341,7 @@ void MylifeClientComponent::resubscribe_subscriptions_() {
 }
 
 void MylifeClientComponent::subscribe(const std::string &topic, subscription_callback_t callback, uint8_t qos) {
-  MQTTSubscription subscription{
+  Subscription subscription{
       .topic = topic,
       .qos = qos,
       .callback = std::move(callback),
@@ -408,11 +408,6 @@ bool MylifeClientComponent::publish(const mqtt::MQTTMessage &message) {
     }
   }
   return ret != 0;
-}
-bool MylifeClientComponent::publish_json(const std::string &topic, const json::json_build_t &f, uint8_t qos,
-                                       bool retain) {
-  std::string message = json::build_json(f);
-  return this->publish(topic, message, qos, retain);
 }
 
 /** Check if the message topic matches the given subscription topic
@@ -488,31 +483,8 @@ void MylifeClientComponent::on_message(const std::string &topic, const std::stri
 }
 
 // Setters
-void MylifeClientComponent::disable_log_message() { this->log_message_.topic = ""; }
-bool MylifeClientComponent::is_log_message_enabled() const { return !this->log_message_.topic.empty(); }
 void MylifeClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
-void MylifeClientComponent::set_log_level(int level) { this->log_level_ = level; }
 void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
-void MylifeClientComponent::set_log_message_template(mqtt::MQTTMessage &&message) { this->log_message_ = std::move(message); }
-void MylifeClientComponent::set_topic_prefix(const std::string &topic_prefix) { this->topic_prefix_ = topic_prefix; }
-const std::string &MylifeClientComponent::get_topic_prefix() const { return this->topic_prefix_; }
-void MylifeClientComponent::disable_birth_message() {
-  this->birth_message_.topic = "";
-}
-void MylifeClientComponent::disable_shutdown_message() {
-  this->shutdown_message_.topic = "";
-}
-void MylifeClientComponent::set_last_will(mqtt::MQTTMessage &&message) {
-  this->last_will_ = std::move(message);
-}
-
-void MylifeClientComponent::set_birth_message(mqtt::MQTTMessage &&message) {
-  this->birth_message_ = std::move(message);
-}
-
-void MylifeClientComponent::set_shutdown_message(mqtt::MQTTMessage &&message) { this->shutdown_message_ = std::move(message); }
-
-void MylifeClientComponent::disable_last_will() { this->last_will_.topic = ""; }
 
 void MylifeClientComponent::on_shutdown() {
   if (!this->shutdown_message_.topic.empty()) {

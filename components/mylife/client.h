@@ -26,7 +26,7 @@ namespace mylife {
 using subscription_callback_t = std::function<void(const std::string &, const std::string &)>;
 
 /// internal struct for MQTT subscriptions.
-struct MQTTSubscription {
+struct Subscription {
   std::string topic;
   uint8_t qos;
   subscription_callback_t callback;
@@ -35,7 +35,7 @@ struct MQTTSubscription {
 };
 
 /// internal struct for MQTT credentials.
-struct MQTTCredentials {
+struct Credentials {
   std::string address;  ///< The address of the server without port number
   uint16_t port;        ///< The port number of the server.
   std::string username;
@@ -53,19 +53,6 @@ enum MQTTClientState {
 class MylifeClientComponent : public Component {
  public:
   MylifeClientComponent();
-
-  /// Set the last will testament message.
-  void set_last_will(mqtt::MQTTMessage &&message);
-  /// Remove the last will testament message.
-  void disable_last_will();
-
-  /// Set the birth message.
-  void set_birth_message(mqtt::MQTTMessage &&message);
-  /// Remove the birth message.
-  void disable_birth_message();
-
-  void set_shutdown_message(mqtt::MQTTMessage &&message);
-  void disable_shutdown_message();
 
   /// Set the keep alive time in seconds, every 0.7*keep_alive a ping will be sent.
   void set_keep_alive(uint16_t keep_alive_s);
@@ -89,25 +76,6 @@ class MylifeClientComponent : public Component {
   void set_ca_certificate(const char *cert) { this->mqtt_backend_.set_ca_certificate(cert); }
   void set_skip_cert_cn_check(bool skip_check) { this->mqtt_backend_.set_skip_cert_cn_check(skip_check); }
 #endif
-
-  /** Set the topic prefix that will be prepended to all topics together with "/". This will, in most cases,
-   * be the name of your Application.
-   *
-   * For example, if "livingroom" is passed to this method, all state topics will, by default, look like
-   * "livingroom/.../state"
-   *
-   * @param topic_prefix The topic prefix. The last "/" is appended automatically.
-   */
-  void set_topic_prefix(const std::string &topic_prefix);
-  /// Get the topic prefix of this device, using default if necessary
-  const std::string &get_topic_prefix() const;
-
-  /// Manually set the topic used for logging.
-  void set_log_message_template(mqtt::MQTTMessage &&message);
-  void set_log_level(int level);
-  /// Get the topic used for logging. Defaults to "<topic_prefix>/debug" and the value is cached for speed.
-  void disable_log_message();
-  bool is_log_message_enabled() const;
 
   /** Subscribe to an MQTT topic and call callback when a message is received.
    *
@@ -142,14 +110,6 @@ class MylifeClientComponent : public Component {
 
   bool publish(const std::string &topic, const char *payload, size_t payload_length, uint8_t qos = 0,
                bool retain = false);
-
-  /** Construct and send a JSON MQTT message.
-   *
-   * @param topic The topic.
-   * @param f The Json Message builder.
-   * @param retain Whether to retain the message.
-   */
-  bool publish_json(const std::string &topic, const json::json_build_t &f, uint8_t qos = 0, bool retain = false);
 
   /// Setup the MQTT client, registering a bunch of callbacks and attempting to connect.
   void setup() override;
@@ -189,10 +149,10 @@ class MylifeClientComponent : public Component {
 #endif
 
   bool subscribe_(const char *topic, uint8_t qos);
-  void resubscribe_subscription_(MQTTSubscription *sub);
+  void resubscribe_subscription_(Subscription *sub);
   void resubscribe_subscriptions_();
 
-  MQTTCredentials credentials_;
+  Credentials credentials_;
   /// The last will message. Disabled optional denotes it being default and
   /// an empty topic denotes the the feature being disabled.
   mqtt::MQTTMessage last_will_;
@@ -206,7 +166,7 @@ class MylifeClientComponent : public Component {
   std::string payload_buffer_;
   int log_level_{ESPHOME_LOG_LEVEL};
 
-  std::vector<MQTTSubscription> subscriptions_;
+  std::vector<Subscription> subscriptions_;
 #if defined(USE_ESP_IDF)
   mqtt::MQTTBackendIDF mqtt_backend_;
 #elif defined(USE_ARDUINO)
