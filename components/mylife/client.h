@@ -44,13 +44,6 @@ struct MQTTCredentials {
   std::string client_id;  ///< The client ID. Will automatically be truncated to 23 characters.
 };
 
-/// Simple data struct for Home Assistant component availability.
-struct Availability {
-  std::string topic;  ///< Empty means disabled
-  std::string payload_available;
-  std::string payload_not_available;
-};
-
 enum MQTTClientState {
   MQTT_CLIENT_DISCONNECTED = 0,
   MQTT_CLIENT_RESOLVING_ADDRESS,
@@ -97,7 +90,6 @@ class MQTTClientComponent : public Component {
   void set_ca_certificate(const char *cert) { this->mqtt_backend_.set_ca_certificate(cert); }
   void set_skip_cert_cn_check(bool skip_check) { this->mqtt_backend_.set_skip_cert_cn_check(skip_check); }
 #endif
-  const Availability &get_availability();
 
   /** Set the topic prefix that will be prepended to all topics together with "/". This will, in most cases,
    * be the name of your Application.
@@ -208,9 +200,6 @@ class MQTTClientComponent : public Component {
   static void dns_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg);
 #endif
 
-  /// Re-calculate the availability property.
-  void recalculate_availability_();
-
   bool subscribe_(const char *topic, uint8_t qos);
   void resubscribe_subscription_(MQTTSubscription *sub);
   void resubscribe_subscriptions_();
@@ -224,8 +213,6 @@ class MQTTClientComponent : public Component {
   mqtt::MQTTMessage birth_message_;
   bool sent_birth_message_{false};
   mqtt::MQTTMessage shutdown_message_;
-  /// Caches availability.
-  Availability availability_{};
   std::string topic_prefix_{};
   mqtt::MQTTMessage log_message_;
   std::string payload_buffer_;

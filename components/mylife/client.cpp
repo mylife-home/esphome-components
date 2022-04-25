@@ -8,7 +8,10 @@
 #include "esphome/components/network/util.h"
 #include <utility>
 #ifdef USE_LOGGER
+#ifdef USE_MQTT_STUB
 #include "esphome/components/logger/logger.h"
+#include "esphome/components/mqtt/mqtt_config.h"
+#endif
 #endif
 #include "lwip/err.h"
 #include "lwip/dns.h"
@@ -25,6 +28,7 @@ MQTTClientComponent::MQTTClientComponent() {
 
 // Connection
 void MQTTClientComponent::setup() {
+
   ESP_LOGCONFIG(TAG, "Setting up MQTT...");
   this->mqtt_backend_.set_on_message(
       [this](const char *topic, const char *payload, size_t len, size_t index, size_t total) {
@@ -44,18 +48,28 @@ void MQTTClientComponent::setup() {
     this->state_ = MQTT_CLIENT_DISCONNECTED;
     this->disconnect_reason_ = reason;
   });
+
+#ifdef USE_MQTT_STUB
 #ifdef USE_LOGGER
-  if (this->is_log_message_enabled() && logger::global_logger != nullptr) {
+  auto stub_config = mqtt::global_mqtt_client;
+
+  if (stub_config && stub_config->is_log_message_enabled() && logger::global_logger != nullptr) {
     logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
-      if (level <= this->log_level_ && this->is_connected()) {
-        this->publish({.topic = this->log_message_.topic,
+      auto stub_config = mqtt::global_mqtt_client;
+
+      if (level <= stub_config->get_log_level() && this->is_connected()) {
+        const auto &log_message = stub_config->get_log_message();
+        this->publish({.topic = log_message.topic,
                        .payload = message,
-                       .qos = this->log_message_.qos,
-                       .retain = this->log_message_.retain});
+                       .qos = log_message.qos,
+                       .retain = log_message.retain});
       }
     });
   }
-#endif
+
+#endif // USE_LOGGER
+#endif // USE_MQTT_STUB
+
 
   this->last_connected_ = millis();
   this->start_dnslookup_();
@@ -69,9 +83,6 @@ void MQTTClientComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Topic Prefix: '%s'", this->topic_prefix_.c_str());
   if (!this->log_message_.topic.empty()) {
     ESP_LOGCONFIG(TAG, "  Log Topic: '%s'", this->log_message_.topic.c_str());
-  }
-  if (!this->availability_.topic.empty()) {
-    ESP_LOGCONFIG(TAG, "  Availability: '%s'", this->availability_.topic.c_str());
   }
 }
 bool MQTTClientComponent::can_proceed() { return this->is_connected(); }
@@ -502,31 +513,16 @@ void MQTTClientComponent::set_topic_prefix(const std::string &topic_prefix) { th
 const std::string &MQTTClientComponent::get_topic_prefix() const { return this->topic_prefix_; }
 void MQTTClientComponent::disable_birth_message() {
   this->birth_message_.topic = "";
-  this->recalculate_availability_();
 }
 void MQTTClientComponent::disable_shutdown_message() {
   this->shutdown_message_.topic = "";
-  this->recalculate_availability_();
 }
-const Availability &MQTTClientComponent::get_availability() { return this->availability_; }
-void MQTTClientComponent::recalculate_availability_() {
-  if (this->birth_message_.topic.empty() || this->birth_message_.topic != this->last_will_.topic) {
-    this->availability_.topic = "";
-    return;
-  }
-  this->availability_.topic = this->birth_message_.topic;
-  this->availability_.payload_available = this->birth_message_.payload;
-  this->availability_.payload_not_available = this->last_will_.payload;
-}
-
 void MQTTClientComponent::set_last_will(mqtt::MQTTMessage &&message) {
   this->last_will_ = std::move(message);
-  this->recalculate_availability_();
 }
 
 void MQTTClientComponent::set_birth_message(mqtt::MQTTMessage &&message) {
   this->birth_message_ = std::move(message);
-  this->recalculate_availability_();
 }
 
 void MQTTClientComponent::set_shutdown_message(mqtt::MQTTMessage &&message) { this->shutdown_message_ = std::move(message); }
