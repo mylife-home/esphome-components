@@ -451,7 +451,7 @@ bool MylifeClientComponent::publish(const std::string &topic, const std::string 
 
 bool MylifeClientComponent::publish(const std::string &topic, const char *payload, size_t payload_length, uint8_t qos,
                                   bool retain) {
-  return publish({.topic = topic, .payload = payload, .qos = qos, .retain = retain});
+  return publish({.topic = topic, .payload = std::string(payload, payload_length), .qos = qos, .retain = retain});
 }
 
 bool MylifeClientComponent::publish(const mqtt::MQTTMessage &message) {
