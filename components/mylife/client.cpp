@@ -87,15 +87,11 @@ void MylifeClientComponent::setup() {
   this->start_dnslookup_();
 }
 void MylifeClientComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "MQTT:");
+  ESP_LOGCONFIG(TAG, "Mylife:");
   ESP_LOGCONFIG(TAG, "  Server Address: %s:%u (%s)", this->credentials_.address.c_str(), this->credentials_.port,
                 this->ip_.str().c_str());
   ESP_LOGCONFIG(TAG, "  Username: " LOG_SECRET("'%s'"), this->credentials_.username.c_str());
   ESP_LOGCONFIG(TAG, "  Client ID: " LOG_SECRET("'%s'"), this->credentials_.client_id.c_str());
-  ESP_LOGCONFIG(TAG, "  Topic Prefix: '%s'", this->topic_prefix_.c_str());
-  if (!this->log_message_.topic.empty()) {
-    ESP_LOGCONFIG(TAG, "  Log Topic: '%s'", this->log_message_.topic.c_str());
-  }
 }
 bool MylifeClientComponent::can_proceed() { return this->is_connected(); }
 
