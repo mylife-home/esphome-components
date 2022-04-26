@@ -106,12 +106,10 @@ void MylifeClientComponent::start_dnslookup_() {
   this->dns_resolved_ = false;
   ip_addr_t addr;
 #ifdef USE_ESP32
-  err_t err = dns_gethostbyname_addrtype(this->credentials_.address.c_str(), &addr,
-                                         MylifeClientComponent::dns_found_callback, this, LWIP_DNS_ADDRTYPE_IPV4);
+  err_t err = dns_gethostbyname_addrtype(this->credentials_.address.c_str(), &addr, MylifeClientComponent::dns_found_callback, this, LWIP_DNS_ADDRTYPE_IPV4);
 #endif
 #ifdef USE_ESP8266
-  err_t err = dns_gethostbyname(this->credentials_.address.c_str(), &addr,
-                                esphome::mqtt::MylifeClientComponent::dns_found_callback, this);
+  err_t err = dns_gethostbyname(this->credentials_.address.c_str(), &addr, MylifeClientComponent::dns_found_callback, this);
 #endif
   switch (err) {
     case ERR_OK: {
