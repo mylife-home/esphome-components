@@ -181,18 +181,8 @@ class MylifeClientComponent : public Component {
   void publish_online(bool online);
 
   Credentials credentials_;
-  /// The last will message. Disabled optional denotes it being default and
-  /// an empty topic denotes the the feature being disabled.
-  mqtt::MQTTMessage last_will_;
-  /// The birth message (e.g. the message that's send on an established connection.
-  /// See last_will_ for what different values denote.
-  mqtt::MQTTMessage birth_message_;
-  bool sent_birth_message_{false};
-  mqtt::MQTTMessage shutdown_message_;
-  std::string topic_prefix_{};
-  mqtt::MQTTMessage log_message_;
   std::string payload_buffer_;
-  int log_level_{ESPHOME_LOG_LEVEL};
+  std::string will_topic_buffer_;
 
   std::vector<Subscription> subscriptions_;
 #if defined(USE_ESP_IDF)

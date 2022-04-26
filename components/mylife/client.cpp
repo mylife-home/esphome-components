@@ -200,10 +200,11 @@ void MylifeClientComponent::start_connect_() {
   this->mqtt_backend_.set_credentials(username, password);
 
   this->mqtt_backend_.set_server((uint32_t) this->ip_, this->credentials_.port);
-  if (!this->last_will_.topic.empty()) {
-    this->mqtt_backend_.set_will(this->last_will_.topic.c_str(), this->last_will_.qos, this->last_will_.retain,
-                                 this->last_will_.payload.c_str());
-  }
+
+  // Remove online
+  // Note: because we pass c_str(), the buffer need to be kept until used
+  this->will_topic_buffer_ = this->build_topic("online");
+  this->mqtt_backend_.set_will(this->will_topic_buffer_.c_str(), 0, true, "");
 
   this->mqtt_backend_.connect();
   this->state_ = MQTT_CLIENT_CONNECTING;
