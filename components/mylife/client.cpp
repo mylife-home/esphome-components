@@ -226,26 +226,12 @@ void MylifeClientComponent::check_connected() {
   // MQTT Client needs some time to be fully set up.
   delay(100);  // NOLINT
 
-///////////
-  this->state_ = MQTT_CLIENT_CONNECTED;
-  this->status_clear_warning();
-  ESP_LOGI(TAG, "MQTT Connected!");
-
-  this->publish_online(true);
-
-  this->last_connected_ = millis();
-
-  this->resubscribe_subscriptions_();
-
-return;
-///////////
-
-  // explicitly mark online so that we don't have inconsistent state while cleaning (plugin removed before component)
-  this->publish_online(false);
-
   // init clean
   this->state_ = MQTT_CLIENT_CLEANING;
   this->start_clean_ = millis();
+
+  // explicitly mark online so that we don't have inconsistent state while cleaning (plugin removed before component)
+  this->publish_online(false);
 
   // clean all message for 2 secs
   ESP_LOGD(TAG, "MQTT Cleaning");
@@ -258,6 +244,12 @@ return;
 }
 
 void MylifeClientComponent::check_cleaned() {
+  if (!this->mqtt_backend_.connected()) {
+    this->state_ = MQTT_CLIENT_DISCONNECTED;
+    ESP_LOGW(TAG, "Lost MQTT Client connection while cleaning!");
+    this->start_dnslookup_();
+  }
+
   // wait 2 secs
   if (millis() - this->start_clean_ < 2000) {
     return;
