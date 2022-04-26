@@ -278,7 +278,6 @@ void MylifeClientComponent::check_disconnected() {
   if (this->mqtt_backend_.connected()) {
     this->last_connected_ = millis();
     this->resubscribe_subscriptions_();
-    // publish online
     return;
   }
 
@@ -572,11 +571,9 @@ std::string MylifeClientComponent::build_topic(std::initializer_list<std::string
 }
 
 void MylifeClientComponent::on_shutdown() {
-  if (!this->shutdown_message_.topic.empty()) {
-    yield();
-    this->publish(this->shutdown_message_);
-    yield();
-  }
+  yield();
+  this->publish_online(false);
+  yield();
   this->mqtt_backend_.disconnect();
 }
 
