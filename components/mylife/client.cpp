@@ -256,8 +256,10 @@ void MylifeClientComponent::check_connected() {
   ESP_LOGD(TAG, "MQTT Cleaning");
   this->subscribe(this->build_topic("#"), [this](const std::string &topic, const std::string &payload) {
     if (payload.size() > 0) {
-      ESP_LOGD(TAG, "MQTT Cleaning '%s'", topic.c_str());
-      this->publish(topic, nullptr, 0, 0, true);
+      this->defer([this, topic] () {
+        ESP_LOGD(TAG, "MQTT Cleaning '%s'", topic.c_str());
+        this->publish(topic, nullptr, 0, 0, true);
+      });
     }
   });
 }
