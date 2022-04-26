@@ -77,8 +77,12 @@ async def to_code(config):
         cg.add_build_flag("-DASYNC_TCP_SSL_ENABLED=1")
 
     cg.add(var.set_keep_alive(config[CONF_KEEPALIVE]))
-
     cg.add(var.set_reboot_timeout(config[CONF_REBOOT_TIMEOUT]))
+
+    rtc = await cg.get_variable(config[CONF_TIME])
+    cg.add(var.set_rtc(rtc))
+    ota = await cg.get_variable(config[CONF_OTA])
+    cg.add(var.set_ota(ota))
 
     # esp-idf only
     if CONF_CERTIFICATE_AUTHORITY in config:
