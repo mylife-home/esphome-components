@@ -129,7 +129,7 @@ bool Logger::output(const Timestamp& timestamp, int level, const char *tag, cons
     root["v"] = 0;
   });
 
-  return client_->publish(topic, payload.data(), payload.size());
+  return client_->publish(topic, payload);
 }
 
 void Logger::try_flush() {

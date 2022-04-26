@@ -122,7 +122,7 @@ void Rpc::serve(const std::string &address, std::unique_ptr<RpcService> service)
       call_ptr->build_output(output);
     });
 
-    this->client_->publish(reply_topic, reply_payload.data(), reply_payload.size());
+    this->client_->publish(reply_topic, reply_payload);
   });
 }
 

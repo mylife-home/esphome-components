@@ -116,7 +116,7 @@ void Metadata::publish_instance_info() {
 
   });
 
-  client_->publish(topic, message.data(), message.size(), 0, true);
+  client_->publish(topic, message, 0, true);
 }
 
 void Metadata::update_uptime() {
