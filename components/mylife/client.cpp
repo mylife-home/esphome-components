@@ -453,25 +453,19 @@ bool MylifeClientComponent::publish(const mqtt::MQTTMessage &message) {
     // critical components will re-transmit their messages
     return false;
   }
-  bool logging_topic = this->log_message_.topic == message.topic;
+  
   bool ret = this->mqtt_backend_.publish(message);
   delay(0);
-  if (!ret && !logging_topic && this->can_send()) {
+  if (!ret && this->can_send()) {
     delay(0);
     ret = this->mqtt_backend_.publish(message);
     delay(0);
   }
 
-  if (!logging_topic) {
-    if (ret) {
-      ESP_LOGV(TAG, "Publish(topic='%s' payload='%s' retain=%d)", message.topic.c_str(), message.payload.c_str(),
-               message.retain);
-    } else {
-      ESP_LOGV(TAG, "Publish failed for topic='%s' (len=%u). will retry later..", message.topic.c_str(),
-               message.payload.length());
-      this->status_momentary_warning("publish", 1000);
-    }
+  if (!ret) {
+    this->status_momentary_warning("publish", 1000);
   }
+
   return ret != 0;
 }
 
