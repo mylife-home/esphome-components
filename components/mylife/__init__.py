@@ -5,111 +5,52 @@ import esphome.config_validation as cv
 from esphome import automation
 from esphome.automation import Condition
 from esphome.components import logger
+from esphome.components.ota import OTAComponent
+from esphome.components.time import RealTimeClock
+
 from esphome.const import (
-    CONF_AVAILABILITY,
-    CONF_BIRTH_MESSAGE,
     CONF_BROKER,
     CONF_CERTIFICATE_AUTHORITY,
     CONF_CLIENT_ID,
-    CONF_COMMAND_TOPIC,
-    CONF_COMMAND_RETAIN,
-    CONF_DISCOVERY,
-    CONF_DISCOVERY_PREFIX,
-    CONF_DISCOVERY_RETAIN,
-    CONF_DISCOVERY_UNIQUE_ID_GENERATOR,
-    CONF_DISCOVERY_OBJECT_ID_GENERATOR,
     CONF_ID,
     CONF_KEEPALIVE,
-    CONF_LEVEL,
-    CONF_LOG_TOPIC,
-    CONF_ON_JSON_MESSAGE,
-    CONF_ON_MESSAGE,
+    CONF_OTA,
     CONF_PASSWORD,
-    CONF_PAYLOAD,
-    CONF_PAYLOAD_AVAILABLE,
-    CONF_PAYLOAD_NOT_AVAILABLE,
     CONF_PORT,
-    CONF_QOS,
     CONF_REBOOT_TIMEOUT,
-    CONF_RETAIN,
-    CONF_SHUTDOWN_MESSAGE,
     CONF_SSL_FINGERPRINTS,
-    CONF_STATE_TOPIC,
-    CONF_TOPIC,
-    CONF_TOPIC_PREFIX,
-    CONF_TRIGGER_ID,
     CONF_USE_ABBREVIATIONS,
     CONF_USERNAME,
     CONF_WILL_MESSAGE,
 )
+
 from esphome.core import coroutine_with_priority, CORE
 from esphome.components.esp32 import add_idf_sdkconfig_option
 
-DEPENDENCIES = ["network"]
+CONF_TIME = "time"
 
-AUTO_LOAD = ["json"]
-
-def validate_message_just_topic(value):
-    value = cv.publish_topic(value)
-    return MQTT_MESSAGE_BASE({CONF_TOPIC: value})
-
-
-MQTT_MESSAGE_BASE = cv.Schema(
-    {
-        cv.Required(CONF_TOPIC): cv.publish_topic,
-        cv.Optional(CONF_QOS, default=0): cv.mqtt_qos,
-        cv.Optional(CONF_RETAIN, default=True): cv.boolean,
-    }
-)
-
-MQTT_MESSAGE_TEMPLATE_SCHEMA = cv.Any(
-    None, MQTT_MESSAGE_BASE, validate_message_just_topic
-)
-
-MQTT_MESSAGE_SCHEMA = cv.Any(
-    None,
-    MQTT_MESSAGE_BASE.extend(
-        {
-            cv.Required(CONF_PAYLOAD): cv.mqtt_payload,
-        }
-    ),
-)
+DEPENDENCIES = ["network", "ota", "time", "mqtt"]
+AUTO_LOAD = ["json", "async_tcp"]
 
 mylife_ns = cg.esphome_ns.namespace("mylife")
-mqtt_ns = cg.esphome_ns.namespace("mqtt")
-MQTTMessage = mqtt_ns.struct("MQTTMessage")
 MylifeClientComponent = mylife_ns.class_("MylifeClientComponent", cg.Component)
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(MylifeClientComponent),
+            cv.GenerateID(CONF_OTA): cv.use_id(OTAComponent),
+            cv.GenerateID(CONF_TIME): cv.use_id(RealTimeClock),
             cv.Required(CONF_BROKER): cv.string_strict,
             cv.Optional(CONF_PORT, default=1883): cv.port,
             cv.Optional(CONF_USERNAME, default=""): cv.string,
             cv.Optional(CONF_PASSWORD, default=""): cv.string,
             cv.Optional(CONF_CLIENT_ID): cv.string,
             cv.Optional(CONF_KEEPALIVE, default="15s"): cv.positive_time_period_seconds,
-            cv.Optional(
-                CONF_REBOOT_TIMEOUT, default="15min"
-            ): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_REBOOT_TIMEOUT, default="15min"): cv.positive_time_period_milliseconds,
         }
     ),
 )
-
-
-def exp_mqtt_message(config):
-    if config is None:
-        return cg.optional(cg.TemplateArguments(MQTTMessage))
-    exp = cg.StructInitializer(
-        MQTTMessage,
-        ("topic", config[CONF_TOPIC]),
-        ("payload", config.get(CONF_PAYLOAD, "")),
-        ("qos", config[CONF_QOS]),
-        ("retain", config[CONF_RETAIN]),
-    )
-    return exp
-
 
 @coroutine_with_priority(40.0)
 async def to_code(config):
@@ -121,7 +62,6 @@ async def to_code(config):
         cg.add_library("ottowinter/AsyncMqttClient-esphome", "0.8.6")
 
     cg.add_define("USE_MYLIFE")
-    cg.add_global(mqtt_ns.using)
 
     cg.add(var.set_broker_address(config[CONF_BROKER]))
     cg.add(var.set_broker_port(config[CONF_PORT]))

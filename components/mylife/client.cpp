@@ -557,6 +557,8 @@ void MylifeClientComponent::on_message(const std::string &topic, const std::stri
 // Setters
 void MylifeClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
 void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
+void MylifeClientComponent::set_rtc(time::RealTimeClock *rtc) { this->logger_.set_rtc(rtc); }
+void MylifeClientComponent::set_ota(ota::OTAComponent *ota) { this->rpc_.set_ota(ota); }
 
 std::string MylifeClientComponent::build_topic(const std::string &suffix) const {
   return App.get_name() + "-core/" + suffix;

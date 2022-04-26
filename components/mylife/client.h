@@ -112,7 +112,7 @@ class MylifeClientComponent : public Component {
    */
   void unsubscribe(const std::string &topic);
 
-  /** Publish a mqtt::MQTTMessage
+  /** Publish a MQTTMessage
    *
    * @param message The message.
    */
@@ -153,6 +153,9 @@ class MylifeClientComponent : public Component {
   void set_username(const std::string &username) { this->credentials_.username = username; }
   void set_password(const std::string &password) { this->credentials_.password = password; }
   void set_client_id(const std::string &client_id) { this->credentials_.client_id = client_id; }
+
+  void set_rtc(time::RealTimeClock *rtc);
+  void set_ota(ota::OTAComponent *ota);
 
   std::string build_topic(const std::string &suffix) const;
   std::string build_topic(std::initializer_list<std::string> suffix) const;
