@@ -28,6 +28,10 @@ MylifeClientComponent::MylifeClientComponent() {
   this->credentials_.client_id = App.get_name() + "-" + get_mac_address();
 }
 
+void MylifeClientComponent::add_on_online_callback(std::function<void(bool)> &&callback) {
+  this->online_callback_.add(std::move(callback));
+}
+
 // Connection
 void MylifeClientComponent::setup() {
 
@@ -265,7 +269,7 @@ void MylifeClientComponent::check_cleaned() {
   this->last_connected_ = millis();
   this->resubscribe_subscriptions_();
   
-  // this->online_callback_.call(true);
+  this->online_callback_.call(true);
 }
 
 void MylifeClientComponent::check_disconnected() {
@@ -325,7 +329,7 @@ void MylifeClientComponent::loop() {
   if (this->disconnect_reason_.has_value()) {
     log_disconnect(*this->disconnect_reason_);
     this->disconnect_reason_.reset();
-    // this->online_callback_.call(false);
+    this->online_callback_.call(false);
   }
 
   switch (this->state_) {
