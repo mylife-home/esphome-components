@@ -36,14 +36,6 @@ struct PluginDefinition;
  */
 using subscription_callback_t = std::function<void(const std::string &, const std::string &)>;
 
-/// internal struct for MQTT messages.
-struct Message {
-  std::string topic;
-  std::string payload;
-  uint8_t qos;  ///< QoS. Only for last will testaments.
-  bool retain;
-};
-
 /// internal struct for MQTT subscriptions.
 struct Subscription {
   std::string topic;
@@ -83,6 +75,26 @@ class MylifeClientComponent : public Component {
   /// Set the keep alive time in seconds, every 0.7*keep_alive a ping will be sent.
   void set_keep_alive(uint16_t keep_alive_s);
 
+#if ASYNC_TCP_SSL_ENABLED
+  /** Add a SSL fingerprint to use for TCP SSL connections to the MQTT broker.
+   *
+   * To use this feature you first have to globally enable the `ASYNC_TCP_SSL_ENABLED` define flag.
+   * This function can be called multiple times and any certificate that matches any of the provided fingerprints
+   * will match. Calling this method will also automatically disable all non-ssl connections.
+   *
+   * @warning This is *not* secure and *not* how SSL is usually done. You'll have to add
+   *          a separate fingerprint for every certificate you use. Additionally, the hashing
+   *          algorithm used here due to the constraints of the MCU, SHA1, is known to be insecure.
+   *
+   * @param fingerprint The SSL fingerprint as a 20 value long std::array.
+   */
+  void add_ssl_fingerprint(const std::array<uint8_t, SHA1_SIZE> &fingerprint);
+#endif
+#ifdef USE_ESP_IDF
+  void set_ca_certificate(const char *cert) { this->mqtt_backend_.set_ca_certificate(cert); }
+  void set_skip_cert_cn_check(bool skip_check) { this->mqtt_backend_.set_skip_cert_cn_check(skip_check); }
+#endif
+
   /** Subscribe to an MQTT topic and call callback when a message is received.
    *
    * @param topic The topic. Wildcards are currently not supported.
@@ -96,15 +108,15 @@ class MylifeClientComponent : public Component {
    * If multiple existing subscriptions to the same topic exist, all of them will be removed.
    *
    * @param topic The topic to unsubscribe from.
-   * Must match the topic in the original subscribe or subscribe_json call exactly.
+   * Must match the topic in the original subscribe call exactly.
    */
   void unsubscribe(const std::string &topic);
 
-  /** Publish a Message
+  /** Publish a MQTTMessage
    *
    * @param message The message.
    */
-  bool publish(const Message &message);
+  bool publish(const mqtt::MQTTMessage &message);
 
   /** Publish a MQTT message
    *
@@ -131,6 +143,7 @@ class MylifeClientComponent : public Component {
 
   void set_reboot_timeout(uint32_t reboot_timeout);
 
+  bool can_send();
   bool is_connected();
 
   void on_shutdown() override;
@@ -165,11 +178,11 @@ class MylifeClientComponent : public Component {
   void resubscribe_subscription_(Subscription *sub);
   void resubscribe_subscriptions_();
 
-  bool can_send();
   void publish_online(bool online);
 
   Credentials credentials_;
   std::string payload_buffer_;
+  std::string will_topic_buffer_;
 
   std::vector<Subscription> subscriptions_;
 #if defined(USE_ESP_IDF)
@@ -177,6 +190,7 @@ class MylifeClientComponent : public Component {
 #elif defined(USE_ARDUINO)
   mqtt::MQTTBackendArduino mqtt_backend_;
 #endif
+
   MQTTClientState state_{MQTT_CLIENT_DISCONNECTED};
   network::IPAddress ip_;
   bool dns_resolved_{false};
