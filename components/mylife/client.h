@@ -9,15 +9,26 @@
 #include "esphome/core/log.h"
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/ip_address.h"
+#include "esphome/components/time/real_time_clock.h"
+#include "esphome/components/ota/ota_component.h"
 #if defined(USE_ESP_IDF)
 #include "esphome/components/mqtt/mqtt_backend_idf.h"
 #elif defined(USE_ARDUINO)
 #include "esphome/components/mqtt/mqtt_backend_arduino.h"
 #endif
 #include "lwip/ip_addr.h"
+#include <vector>
+#include <memory>
+#include <set>
+#include "metadata.h"
+#include "logger.h"
+#include "rpc.h"
 
 namespace esphome {
 namespace mylife {
+
+class MylifeController;
+struct PluginDefinition;
 
 /** Callback for MQTT subscriptions.
  *
@@ -197,6 +208,11 @@ class MylifeClientComponent : public Component {
   uint32_t start_clean_{0};
   optional<mqtt::MQTTClientDisconnectReason> disconnect_reason_{};
   CallbackManager<void(bool)> online_callback_{};
+
+  std::vector<std::unique_ptr<MylifeController>> controllers_;
+  Metadata metadata_;
+  Logger logger_;
+  Rpc rpc_;
 };
 
 }  // namespace mylife

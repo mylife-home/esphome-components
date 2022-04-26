@@ -8,15 +8,18 @@
 #include "esphome/components/network/util.h"
 #include <utility>
 #include <sstream>
+#include "lwip/err.h"
+#include "lwip/dns.h"
+
 #ifdef USE_LOGGER
 #ifdef USE_MQTT_STUB
 #include "esphome/components/logger/logger.h"
 #include "esphome/components/mqtt/mqtt_config.h"
 #endif
 #endif
-#include "lwip/err.h"
-#include "lwip/dns.h"
 
+#include "controller.h"
+// #include "controller_factory.h"
 #include "encoding.h"
 
 namespace esphome {
@@ -24,8 +27,11 @@ namespace mylife {
 
 static const char *const TAG = "mylife";
 
-MylifeClientComponent::MylifeClientComponent() {
-  this->credentials_.client_id = App.get_name() + "-" + get_mac_address();
+MylifeClientComponent::MylifeClientComponent()
+ : metadata_(this)
+ , logger_(this)
+ , rpc_(this) {
+  this->credentials_.client_id = App.get_name() + "-" + get_mac_address() + "-mylife";
 }
 
 void MylifeClientComponent::add_on_online_callback(std::function<void(bool)> &&callback) {
