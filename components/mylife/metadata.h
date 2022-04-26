@@ -7,6 +7,7 @@
 #include <set>
 #include <vector>
 #include <memory>
+#include <string>
 
 namespace esphome {
 namespace mylife {
