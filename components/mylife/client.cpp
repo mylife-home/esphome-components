@@ -25,7 +25,6 @@ namespace mylife {
 static const char *const TAG = "mylife";
 
 MylifeClientComponent::MylifeClientComponent() {
-  global_mylife_client = this;
   this->credentials_.client_id = App.get_name() + "-" + get_mac_address();
 }
 
@@ -579,8 +578,6 @@ void MylifeClientComponent::add_ssl_fingerprint(const std::array<uint8_t, SHA1_S
   this->mqtt_backend_.addServerFingerprint(fingerprint.data());
 }
 #endif
-
-MylifeClientComponent *global_mylife_client = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 }  // namespace mylife
 }  // namespace esphome

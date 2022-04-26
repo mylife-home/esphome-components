@@ -192,8 +192,6 @@ class MylifeClientComponent : public Component {
   optional<mqtt::MQTTClientDisconnectReason> disconnect_reason_{};
 };
 
-extern MylifeClientComponent *global_mylife_client;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-
 }  // namespace mylife
 }  // namespace esphome
 
