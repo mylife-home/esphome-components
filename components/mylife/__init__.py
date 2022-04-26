@@ -19,9 +19,7 @@ from esphome.const import (
     CONF_PORT,
     CONF_REBOOT_TIMEOUT,
     CONF_SSL_FINGERPRINTS,
-    CONF_USE_ABBREVIATIONS,
     CONF_USERNAME,
-    CONF_WILL_MESSAGE,
 )
 
 from esphome.core import coroutine_with_priority, CORE
