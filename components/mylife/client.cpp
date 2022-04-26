@@ -91,17 +91,23 @@ void MylifeClientComponent::setup() {
 #endif // USE_LOGGER
 #endif // USE_MQTT_STUB
 
-
   this->last_connected_ = millis();
   this->start_dnslookup_();
 }
+
 void MylifeClientComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Mylife:");
   ESP_LOGCONFIG(TAG, "  Server Address: %s:%u (%s)", this->credentials_.address.c_str(), this->credentials_.port,
                 this->ip_.str().c_str());
   ESP_LOGCONFIG(TAG, "  Username: " LOG_SECRET("'%s'"), this->credentials_.username.c_str());
   ESP_LOGCONFIG(TAG, "  Client ID: " LOG_SECRET("'%s'"), this->credentials_.client_id.c_str());
+  ESP_LOGCONFIG(TAG, "  Components:");
+
+  for (const auto &controller : controllers_) {
+    ESP_LOGCONFIG(TAG, "    %s (plugin: %s)", controller->get_component_id().c_str(), controller->get_plugin_metadata()->id.c_str());
+  }
 }
+
 bool MylifeClientComponent::can_proceed() { return this->is_connected(); }
 
 void MylifeClientComponent::start_dnslookup_() {
