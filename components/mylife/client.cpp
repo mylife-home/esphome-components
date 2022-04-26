@@ -19,7 +19,7 @@
 #endif
 
 #include "controller.h"
-// #include "controller_factory.h"
+#include "controller_factory.h"
 #include "encoding.h"
 
 namespace esphome {
@@ -40,8 +40,17 @@ void MylifeClientComponent::add_on_online_callback(std::function<void(bool)> &&c
 
 // Connection
 void MylifeClientComponent::setup() {
+  ESP_LOGCONFIG(TAG, "Setting up Mylife...");
 
-  ESP_LOGCONFIG(TAG, "Setting up MQTT...");
+  this->controllers_ = MylifeControllerFactory::build(this);
+  this->metadata_.build_plugins(controllers_);
+  
+  this->set_interval(60000, [this]() {
+    this->metadata_.update();
+  });
+
+  this->rpc_.serve_restart();
+
   this->mqtt_backend_.set_on_message(
       [this](const char *topic, const char *payload, size_t len, size_t index, size_t total) {
         if (index == 0)
@@ -450,7 +459,7 @@ bool MylifeClientComponent::publish(const std::string &topic, const char *payloa
 }
 
 bool MylifeClientComponent::publish(const mqtt::MQTTMessage &message) {
-  if (!this->is_connected()) {
+  if (!this->can_send()) {
     // critical components will re-transmit their messages
     return false;
   }
