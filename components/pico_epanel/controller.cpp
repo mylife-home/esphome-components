@@ -50,6 +50,13 @@ void PicoEpanelController::dump_config() {
   }
 }
 
+void PicoEpanelController::loop() {
+  if (this->should_refresh_inputs_) {
+    this->refresh_inputs();
+    this->should_refresh_inputs_ = false;
+  }
+}
+
 bool PicoEpanelController::read_u16(uint8_t reg, uint16_t *value) {
   auto result = this->read_register(reg, reinterpret_cast<uint8_t *>(value), sizeof(*value));
   if (result == i2c::ERROR_OK) {
@@ -105,9 +112,7 @@ void PicoEpanelController::write_output(uint8_t index, uint8_t value) {
 }
 
 void PicoEpanelController::s_intr_pin_handler(PicoEpanelController *this_) {
-  this_->defer([this_]() {
-    this_->refresh_inputs();
-  });
+  this_->should_refresh_inputs_ = true;
 }
 
 void PicoEpanelController::refresh_inputs() {

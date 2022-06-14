@@ -26,6 +26,7 @@ public:
 
   void setup() override;
   void dump_config() override;
+  void loop() override;
 
   void set_interrupt_pin(InternalGPIOPin *intr_pin) { intr_pin_ = intr_pin; }
 
@@ -44,6 +45,7 @@ private:
 
   std::array<binary_sensor::BinarySensor *, 16> inputs_{{nullptr}};
   InternalGPIOPin *intr_pin_{nullptr};
+  bool should_refresh_inputs_{false};
 
 };
 
