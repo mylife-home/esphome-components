@@ -20,6 +20,7 @@ void PicoEpanelController::setup() {
   // check magic
   uint16_t read_magic;
   if (!this->read_u16(REG_CHECK, &read_magic)) {
+    this->mark_failed();
     return;
   }
 
@@ -31,6 +32,7 @@ void PicoEpanelController::setup() {
 
   // reset
   if (!this->write_u16(REG_RESET, 0)) {
+    this->mark_failed();
     return;
   }
 
@@ -53,22 +55,24 @@ void PicoEpanelController::dump_config() {
 bool PicoEpanelController::read_u16(uint8_t reg, uint16_t *value) {
   auto result = this->read_register(reg, reinterpret_cast<uint8_t *>(value), sizeof(*value));
   if (result == i2c::ERROR_OK) {
+    this->status_clear_warning();
     return true;
   }
 
   ESP_LOGE(TAG, "Could not read register %hu (error=%d)", reg, result);
-  this->mark_failed();
+  this->status_set_warning();
   return false;
 }
 
 bool PicoEpanelController::write_u16(uint8_t reg, const uint16_t value) {
   auto result = this->write_register(reg, reinterpret_cast<const uint8_t *>(&value), sizeof(value));
   if (result == i2c::ERROR_OK) {
+    this->status_clear_warning();
     return true;
   }
 
   ESP_LOGE(TAG, "Could not write register %hu (error=%d)", reg, result);
-  this->mark_failed();
+  this->status_set_warning();
   return false;
 }
 
@@ -89,7 +93,9 @@ inline uint8_t color_ftou(float value) {
 
 void PicoEpanelController::set_output(PicoEpanelOutput *output, uint8_t index) {
   output->add_on_write_callback([&, index](float value) {
-    this->write_output(index, color_ftou(value));
+    this->defer([&, index, value]() {
+      this->write_output(index, color_ftou(value));
+    });
   });
 }
 
@@ -97,11 +103,11 @@ void PicoEpanelController::write_output(uint8_t index, uint8_t value) {
   if (this->is_failed()) {
     return;
   }
+  
+  ESP_LOGD(TAG, "Write output @ %d -> %d", index, value);
 
   uint16_t data = ((uint16_t)index << 8) | value;
   this->write_u16(REG_OUTPUTS, data);
-
-  ESP_LOGD(TAG, "Write output @ %d -> %d", index, value);
 }
 
 void PicoEpanelController::s_intr_pin_handler(PicoEpanelController *this_) {
