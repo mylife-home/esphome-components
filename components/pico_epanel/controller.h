@@ -31,6 +31,8 @@ public:
 
   void set_input(binary_sensor::BinarySensor *sensor, uint8_t index) { inputs_[index] = sensor; }
   void set_output(PicoEpanelOutput *output, uint8_t index);
+  
+  float read_internal_temp();
 
 private:
   bool read_u16(uint8_t reg, uint16_t *value);

@@ -6,7 +6,7 @@
 #define REG_RESET 2
 #define REG_INPUTS 3
 #define REG_OUTPUTS 4
-
+#define REG_INTERNAL_TEMP 5
 
 namespace esphome {
 namespace pico_epanel {
@@ -85,6 +85,24 @@ std::bitset<16> PicoEpanelController::read_inputs() {
   ESP_LOGD(TAG, "Read inputs %hu", data);
 
   return {data};
+}
+
+
+// 12-bit conversion, assume max value == ADC_VREF == 3.3 V
+static constexpr const float conversion_factor = 3.3f / (1 << 12);
+
+float PicoEpanelController::read_internal_temp() {
+  uint16_t raw;
+
+  if (!this->read_u16(REG_INTERNAL_TEMP, &raw)) {
+    return 0;
+  }
+
+  float adc_voltage = raw * conversion_factor;
+  // T = 27 - (ADC_Voltage - 0.706)/0.001721
+  float temp = 27 - (adc_voltage - 0.706) / 0.001721;
+
+  ESP_LOGD(TAG, "Read internal temp %f C (raw=%hu)", temp, raw);
 }
 
 inline uint8_t color_ftou(float value) {
