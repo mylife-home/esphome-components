@@ -2,7 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import sensor
 from esphome.const import CONF_ID
-from . import PicoEpanelController, CONF_CONTROLLER_ID
+from . import PicoEpanelController, CONF_CONTROLLER_ID, pico_epanel_ns
 
 DEPENDENCIES = ["pico_epanel"]
 
@@ -25,10 +25,3 @@ async def to_code(config):
     await cg.register_parented(var, config[CONF_CONTROLLER_ID])
     await cg.register_component(var, config)
     await sensor.register_sensor(var, config)
-
-async def to_code(config):
-    var = await binary_sensor.new_binary_sensor(config)
-
-    controller = await cg.get_variable(config[CONF_CONTROLLER_ID])
-    cg.add(controller.set_internal_temp_sensor(var))
-

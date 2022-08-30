@@ -8,7 +8,7 @@
 namespace esphome {
 namespace pico_epanel {
 
-class InternalTempSensor : public PollingComponent, public Parented<PicoEpanelController> public sensor::Sensor {
+class InternalTempSensor : public PollingComponent, public Parented<PicoEpanelController>, public sensor::Sensor {
  public:
   InternalTempSensor();
 
