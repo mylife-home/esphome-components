@@ -103,6 +103,8 @@ float PicoEpanelController::read_internal_temp() {
   float temp = 27 - (adc_voltage - 0.706) / 0.001721;
 
   ESP_LOGD(TAG, "Read internal temp %f C (raw=%hu)", temp, raw);
+
+  return temp;
 }
 
 inline uint8_t color_ftou(float value) {
