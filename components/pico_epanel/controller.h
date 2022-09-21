@@ -46,7 +46,6 @@ private:
 
   std::array<binary_sensor::BinarySensor *, 16> inputs_{{nullptr}};
   InternalGPIOPin *intr_pin_{nullptr};
-
 };
 
 }  // namespace pico_epanel

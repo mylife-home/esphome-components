@@ -1,3 +1,4 @@
+#include <unordered_map>
 #include "controller.h"
 #include "output.h"
 #include "esphome/core/log.h"
@@ -13,6 +14,39 @@ namespace pico_epanel {
 
 static const char *const TAG = "pico_epanel";
 static constexpr uint16_t magic = 0x4242;
+
+// Only keep one interrupt pin instance, shared across controller if they use same pin number.
+// Else multiple init of same pin overwrite each other
+class SharedInterruptPin {
+public:
+  SharedInterruptPin(InternalGPIOPin *pin)
+   : pin_(pin) {
+  }
+
+  void setup() {
+    this->pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
+    this->pin_->setup();
+    this->pin_->attach_interrupt(&SharedInterruptPin::s_pin_handler, this, gpio::INTERRUPT_FALLING_EDGE);
+  }
+
+  void register_callback(std::function<void()> &&callback) {
+    this->callback_.add(std::move(callback));
+  }
+
+  InternalGPIOPin *pin() const {
+    return pin_;
+  }
+
+private:
+  static void s_pin_handler(SharedInterruptPin *this_) {
+    this_->callback_.call();
+  }
+
+  CallbackManager<void()> callback_{};
+  InternalGPIOPin *pin_{nullptr};
+};
+
+static std::unordered_map<uint8_t, SharedInterruptPin> interrupt_pins;
 
 void PicoEpanelController::setup() {
   ESP_LOGCONFIG(TAG, "Setting up PicoEpanelController...");
@@ -40,13 +74,28 @@ void PicoEpanelController::setup() {
   this->refresh_inputs();
 
   // setup interrupt pin
-  this->intr_pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
-  this->intr_pin_->setup();
-  this->intr_pin_->attach_interrupt(&PicoEpanelController::s_intr_pin_handler, this, gpio::INTERRUPT_FALLING_EDGE);
+  auto pin = this->intr_pin_->get_pin();
+  std::unordered_map<uint8_t, SharedInterruptPin>::iterator iter;
+  bool inserted;
+  std::tie(iter, inserted) = interrupt_pins.emplace(pin, this->intr_pin_);
+  auto &shared_intr_pin = iter->second;
+
+  if (inserted) {
+    shared_intr_pin.setup();
+  }
+
+  this->intr_pin_ = shared_intr_pin.pin();
+
+  shared_intr_pin.register_callback([this]() {
+    this->defer([this]() {
+      this->refresh_inputs();
+    });
+  });
 }
 
 void PicoEpanelController::dump_config() {
   ESP_LOGCONFIG(TAG, "PicoEpanelController:");
+  ESP_LOGCONFIG(TAG, "  Interrupt pin: %s", this->intr_pin_->dump_summary().c_str());
   if (this->is_failed()) {
     ESP_LOGCONFIG(TAG, "  failed!");
   }
