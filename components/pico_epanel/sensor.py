@@ -10,7 +10,13 @@ InternalTempSensor = pico_epanel_ns.class_(
     "InternalTempSensor", sensor.Sensor, cg.PollingComponent
 )
 
-CONFIG_SCHEMA = sensor.SENSOR_SCHEMA.extend(
+CONFIG_SCHEMA = sensor.sensor_schema(
+        InternalTempSensor,
+        unit_of_measurement=UNIT_CELSIUS,
+        accuracy_decimals=1,
+        device_class=DEVICE_CLASS_TEMPERATURE,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ).extend(
     {
         cv.GenerateID(): cv.declare_id(InternalTempSensor),
         cv.GenerateID(CONF_CONTROLLER_ID): cv.use_id(PicoEpanelController)
