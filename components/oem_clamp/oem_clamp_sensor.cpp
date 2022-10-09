@@ -25,25 +25,24 @@ void OemClampSensor::update() {
     this->is_sampling_ = false;
     this->high_freq_.stop();
 
-    if (this->num_samples_ == 0) {
+    if (this->samples_count_ == 0) {
       // Shouldn't happen, but let's not crash if it does.
-      this->publish_state(NAN);
+      this->publish_state(0);
       return;
     }
 
-    const float rms_ac_dc_squared = this->sample_squared_sum_ / this->num_samples_;
-    const float rms_dc = this->sample_sum_ / this->num_samples_;
-    const float rms_ac = std::sqrt(rms_ac_dc_squared - rms_dc * rms_dc);
-    ESP_LOGD(TAG, "'%s' - Raw AC Value: %.3fA after %d different samples (%d SPS)", this->name_.c_str(), rms_ac,
-             this->num_samples_, 1000 * this->num_samples_ / this->sample_duration_);
-    this->publish_state(rms_ac);
+    const float average = this->samples_sum_ / this->samples_count_;
+
+    ESP_LOGD(TAG, "'%s' - avg: %.3f, min: %.3f, max: %.3f, count: %d", this->name_.c_str(),
+      average, this->samples_min_, this->samples_max_, this->samples_sum_, this->samples_count_);
+    this->publish_state(0); // for now we don't care
   });
 
   // Set sampling values
-  this->last_value_ = 0.0;
-  this->num_samples_ = 0;
-  this->sample_sum_ = 0.0f;
-  this->sample_squared_sum_ = 0.0f;
+  this->samples_min_ = +INFINITY;
+  this->samples_max_ = -INFINITY;
+  this->samples_sum_ = 0;
+  this->samples_count_ = 0;
   this->is_sampling_ = true;
 }
 
@@ -56,14 +55,10 @@ void OemClampSensor::loop() {
   if (std::isnan(value))
     return;
 
-  // Assuming a sine wave, avoid requesting values faster than the ADC can provide them
-  if (this->last_value_ == value)
-    return;
-  this->last_value_ = value;
-
-  this->num_samples_++;
-  this->sample_sum_ += value;
-  this->sample_squared_sum_ += value * value;
+  this->samples_min_ = std::min(this->samples_min_, value);
+  this->samples_max_ = std::max(this->samples_max_, value);
+  this->samples_sum_ += value;
+  ++this->samples_count_;
 }
 
 }  // namespace oem_clamp
