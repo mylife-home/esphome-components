@@ -12,9 +12,11 @@ AUTO_LOAD = ["voltage_sampler"]
 CODEOWNERS = ["@jesserockz"]
 
 CONF_SAMPLE_DURATION = "sample_duration"
+CONF_BURDEN_RESISTOR_VALUE = "burden_resistor_value"
+CONF_CT_TURNS = "ct_turns"
 
-oem_clamp_ns = cg.esphome_ns.namespace("ct_clamp")
-OemClampSensor = oem_clamp_ns.class_("CTClampSensor", sensor.Sensor, cg.PollingComponent)
+oem_clamp_ns = cg.esphome_ns.namespace("oem_clamp")
+OemClampSensor = oem_clamp_ns.class_("OemClampSensor", sensor.Sensor, cg.PollingComponent)
 
 CONFIG_SCHEMA = (
     sensor.sensor_schema(
@@ -27,9 +29,9 @@ CONFIG_SCHEMA = (
     .extend(
         {
             cv.Required(CONF_SENSOR): cv.use_id(voltage_sampler.VoltageSampler),
-            cv.Optional(
-                CONF_SAMPLE_DURATION, default="200ms"
-            ): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_SAMPLE_DURATION, default="200ms"): cv.positive_time_period_milliseconds,
+            cv.Required(CONF_BURDEN_RESISTOR_VALUE): cv.positive_not_null_int,
+            cv.Required(CONF_CT_TURNS): cv.positive_not_null_int,
         }
     )
     .extend(cv.polling_component_schema("60s"))
@@ -43,3 +45,5 @@ async def to_code(config):
     sens = await cg.get_variable(config[CONF_SENSOR])
     cg.add(var.set_source(sens))
     cg.add(var.set_sample_duration(config[CONF_SAMPLE_DURATION]))
+    cg.add(var.set_burden_resistor_value(config[CONF_BURDEN_RESISTOR_VALUE]))
+    cg.add(var.set_ct_turns(config[CONF_CT_TURNS]))

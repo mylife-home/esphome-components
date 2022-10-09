@@ -18,8 +18,10 @@ class OemClampSensor : public sensor::Sensor, public PollingComponent {
     return setup_priority::DATA - 1.0f;
   }
 
-  void set_sample_duration(uint32_t sample_duration) { sample_duration_ = sample_duration; }
-  void set_source(voltage_sampler::VoltageSampler *source) { source_ = source; }
+  void set_sample_duration(uint32_t sample_duration) { this->sample_duration_ = sample_duration; }
+  void set_source(voltage_sampler::VoltageSampler *source) { this->source_ = source; }
+  void set_burden_resistor_value(float burden_resistor_value) { this->burden_resistor_value_ = burden_resistor_value; }
+  void set_ct_turns(float ct_turns) { this->ct_turns_ = ct_turns; }
 
  protected:
   /// High Frequency loop() requester used during sampling phase.
@@ -29,6 +31,10 @@ class OemClampSensor : public sensor::Sensor, public PollingComponent {
   uint32_t sample_duration_;
   /// The sampling source to read values from.
   voltage_sampler::VoltageSampler *source_;
+  /// Burden resistor value
+  float burden_resistor_value_;
+  /// CT turns
+  float ct_turns_;
 
   /**
    * https://learn.openenergymonitor.org/electricity-monitoring/ct-sensors/interface-with-arduino

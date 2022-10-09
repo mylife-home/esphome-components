@@ -34,7 +34,7 @@ void OemClampSensor::update() {
     const float average = this->samples_sum_ / this->samples_count_;
 
     ESP_LOGD(TAG, "'%s' - avg: %.3f, min: %.3f, max: %.3f, count: %d", this->name_.c_str(),
-      average, this->samples_min_, this->samples_max_, this->samples_sum_, this->samples_count_);
+      average, this->samples_min_, this->samples_max_, this->samples_count_);
     this->publish_state(0); // for now we don't care
   });
 
