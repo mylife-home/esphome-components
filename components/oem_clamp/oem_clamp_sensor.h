@@ -20,8 +20,8 @@ class OemClampSensor : public sensor::Sensor, public PollingComponent {
 
   void set_sample_duration(uint32_t sample_duration) { this->sample_duration_ = sample_duration; }
   void set_source(voltage_sampler::VoltageSampler *source) { this->source_ = source; }
-  void set_burden_resistor_value(float burden_resistor_value) { this->burden_resistor_value_ = burden_resistor_value; }
-  void set_ct_turns(float ct_turns) { this->ct_turns_ = ct_turns; }
+  void set_burden_resistor_value(uint32_t burden_resistor_value) { this->burden_resistor_value_ = burden_resistor_value; }
+  void set_ct_turns(uint32_t ct_turns) { this->ct_turns_ = ct_turns; }
 
  protected:
   /// High Frequency loop() requester used during sampling phase.
@@ -32,23 +32,25 @@ class OemClampSensor : public sensor::Sensor, public PollingComponent {
   /// The sampling source to read values from.
   voltage_sampler::VoltageSampler *source_;
   /// Burden resistor value
-  float burden_resistor_value_;
+  uint32_t burden_resistor_value_ = 1; // avoid problems
   /// CT turns
-  float ct_turns_;
+  uint32_t ct_turns_ = 1; // avoid problems
 
   /**
    * https://learn.openenergymonitor.org/electricity-monitoring/ct-sensors/interface-with-arduino
    * 
-   * 
-   * 
-   * 
+   * - compute average to have a base 0 (since we get sin wave) => consider it will be constant, so only refresh it for the next sample
+   * - compute rms voltage
+   * - compute primary current, using burden value and CT turns
    */
 
-  float samples_min_ = +INFINITY;
-  float samples_max_ = -INFINITY;
-  float samples_sum_ = 0;
-  uint32_t samples_count_ = 0;
+  struct {
+    float raw_sum;
+    float measure_sum_square;
+    uint32_t count;
+  } sampling_data_;
 
+  float measure_zero_ = 1.65; // by default use VRef/2, will be updated at next sampling
   bool is_sampling_ = false;
 };
 

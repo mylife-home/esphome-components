@@ -11,6 +11,8 @@ static const char *const TAG = "oem_clamp";
 void OemClampSensor::dump_config() {
   LOG_SENSOR("", "CT Clamp Sensor", this);
   ESP_LOGCONFIG(TAG, "  Sample Duration: %.2fs", this->sample_duration_ / 1e3f);
+  ESP_LOGCONFIG(TAG, "  Burden resistor value: %dΩ", this->burden_resistor_value_);
+  ESP_LOGCONFIG(TAG, "  CT turns: %d", this->ct_turns_);
   LOG_UPDATE_INTERVAL(this);
 }
 
@@ -25,24 +27,31 @@ void OemClampSensor::update() {
     this->is_sampling_ = false;
     this->high_freq_.stop();
 
-    if (this->samples_count_ == 0) {
+    if (this->sampling_data_.count == 0) {
       // Shouldn't happen, but let's not crash if it does.
       this->publish_state(0);
       return;
     }
 
-    const float average = this->samples_sum_ / this->samples_count_;
+    // End of sampling, get values
 
-    ESP_LOGD(TAG, "'%s' - avg: %.3f, min: %.3f, max: %.3f, count: %d", this->name_.c_str(),
-      average, this->samples_min_, this->samples_max_, this->samples_count_);
-    this->publish_state(0); // for now we don't care
+    // set new average
+    this->measure_zero_ = this->sampling_data_.raw_sum / this->sampling_data_.count;
+    // compute rms
+    const float v_rms = std::sqrt(this->sampling_data_.measure_sum_square / this->sampling_data_.count);
+    // primary current
+    const float primary_current = v_rms / this->burden_resistor_value_ * this->ct_turns_;
+
+    this->publish_state(primary_current);
+
+    ESP_LOGD(TAG, "'%s' - measured zero=%.3fV, v_rms=%.3fV, primary_current=%.3fA (sample count: %d)",
+      this->name_.c_str(), this->measure_zero_, v_rms, primary_current, this->sampling_data_.count);
   });
 
-  // Set sampling values
-  this->samples_min_ = +INFINITY;
-  this->samples_max_ = -INFINITY;
-  this->samples_sum_ = 0;
-  this->samples_count_ = 0;
+  // Init sampling values
+  this->sampling_data_.count = 0;
+  this->sampling_data_.raw_sum = 0;
+  this->sampling_data_.measure_sum_square = 0;
   this->is_sampling_ = true;
 }
 
@@ -51,14 +60,16 @@ void OemClampSensor::loop() {
     return;
 
   // Perform a single sample
-  float value = this->source_->sample();
-  if (std::isnan(value))
+  float raw = this->source_->sample();
+  if (std::isnan(raw))
     return;
 
-  this->samples_min_ = std::min(this->samples_min_, value);
-  this->samples_max_ = std::max(this->samples_max_, value);
-  this->samples_sum_ += value;
-  ++this->samples_count_;
+  // Get value relative to estimated 0 (VREF/2)
+  const float measure = std::abs(raw - this->measure_zero_);
+
+  ++this->sampling_data_.count;
+  this->sampling_data_.raw_sum += raw;
+  this->sampling_data_.measure_sum_square += measure * measure;
 }
 
 }  // namespace oem_clamp
