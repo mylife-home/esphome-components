@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import sensor
-from esphome.const import CONF_ID
+from esphome.const import CONF_ID, DEVICE_CLASS_TEMPERATURE, STATE_CLASS_MEASUREMENT, UNIT_CELSIUS
 from . import PicoEpanelController, CONF_CONTROLLER_ID, pico_epanel_ns
 
 DEPENDENCIES = ["pico_epanel"]
