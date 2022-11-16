@@ -12,6 +12,7 @@ AUTO_LOAD = ["voltage_sampler"]
 CODEOWNERS = ["@jesserockz"]
 
 CONF_SAMPLE_DURATION = "sample_duration"
+CONF_ZERO = "vref_zero_point"
 CONF_BURDEN_RESISTOR_VALUE = "burden_resistor_value"
 CONF_CT_TURNS = "ct_turns"
 
@@ -30,6 +31,7 @@ CONFIG_SCHEMA = (
         {
             cv.Required(CONF_SENSOR): cv.use_id(voltage_sampler.VoltageSampler),
             cv.Optional(CONF_SAMPLE_DURATION, default="200ms"): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_ZERO, default="1.65"): cv.float_range(min=0, min_included=False),
             cv.Required(CONF_BURDEN_RESISTOR_VALUE): cv.positive_not_null_int,
             cv.Required(CONF_CT_TURNS): cv.positive_not_null_int,
         }
@@ -45,5 +47,6 @@ async def to_code(config):
     sens = await cg.get_variable(config[CONF_SENSOR])
     cg.add(var.set_source(sens))
     cg.add(var.set_sample_duration(config[CONF_SAMPLE_DURATION]))
+    cg.add(var.set_zero(config[CONF_ZERO]))
     cg.add(var.set_burden_resistor_value(config[CONF_BURDEN_RESISTOR_VALUE]))
     cg.add(var.set_ct_turns(config[CONF_CT_TURNS]))

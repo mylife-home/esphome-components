@@ -18,6 +18,7 @@ class OemClampSensor : public sensor::Sensor, public PollingComponent {
     return setup_priority::DATA - 1.0f;
   }
 
+  void set_zero(float zero) { this->zero_ = zero; }
   void set_sample_duration(uint32_t sample_duration) { this->sample_duration_ = sample_duration; }
   void set_source(voltage_sampler::VoltageSampler *source) { this->source_ = source; }
   void set_burden_resistor_value(uint32_t burden_resistor_value) { this->burden_resistor_value_ = burden_resistor_value; }
@@ -32,9 +33,11 @@ class OemClampSensor : public sensor::Sensor, public PollingComponent {
   /// The sampling source to read values from.
   voltage_sampler::VoltageSampler *source_;
   /// Burden resistor value
-  uint32_t burden_resistor_value_ = 1; // avoid problems
+  uint32_t burden_resistor_value_ = 1;
   /// CT turns
-  uint32_t ct_turns_ = 1; // avoid problems
+  uint32_t ct_turns_ = 1;
+  /// Voltage measured when there is no current throught CT. Use VRef/2 (divisor bridge)
+  float zero_ = 0;
 
   /**
    * https://learn.openenergymonitor.org/electricity-monitoring/ct-sensors/interface-with-arduino
@@ -50,7 +53,6 @@ class OemClampSensor : public sensor::Sensor, public PollingComponent {
     uint32_t count;
   } sampling_data_;
 
-  float measure_zero_ = 1.65; // by default use VRef/2, will be updated at next sampling
   bool is_sampling_ = false;
 };
 

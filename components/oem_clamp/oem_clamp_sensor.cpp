@@ -10,9 +10,12 @@ static const char *const TAG = "oem_clamp";
 
 void OemClampSensor::dump_config() {
   LOG_SENSOR("", "CT Clamp Sensor", this);
-  ESP_LOGCONFIG(TAG, "  Sample Duration: %.2fs", this->sample_duration_ / 1e3f);
+  ESP_LOGCONFIG(TAG, "  Sample duration: %.2fs", this->sample_duration_ / 1e3f);
+  ESP_LOGCONFIG(TAG, "  VREf zero point: %.2fV", this->zero_);
   ESP_LOGCONFIG(TAG, "  Burden resistor value: %dΩ", this->burden_resistor_value_);
   ESP_LOGCONFIG(TAG, "  CT turns: %d", this->ct_turns_);
+  // https://tyler.anairo.com/projects/open-energy-monitor-calculator
+  ESP_LOGCONFIG(TAG, "  Max RMS current: %.1fA", this->zero_ / this->burden_resistor_value_ * this->ct_turns_ * 0.707);
   LOG_UPDATE_INTERVAL(this);
 }
 
@@ -35,8 +38,6 @@ void OemClampSensor::update() {
 
     // End of sampling, get values
 
-    // set new average
-    this->measure_zero_ = this->sampling_data_.raw_sum / this->sampling_data_.count;
     // compute rms
     const float v_rms = std::sqrt(this->sampling_data_.measure_sum_square / this->sampling_data_.count);
     // primary current
@@ -44,8 +45,8 @@ void OemClampSensor::update() {
 
     this->publish_state(primary_current);
 
-    ESP_LOGD(TAG, "'%s' - measured zero=%.3fV, v_rms=%.3fV, primary_current=%.3fA (sample count: %d)",
-      this->name_.c_str(), this->measure_zero_, v_rms, primary_current, this->sampling_data_.count);
+    ESP_LOGD(TAG, "'%s' - v_rms=%.3fV, primary_current=%.3fA (sample count: %d)",
+      this->name_.c_str(), v_rms, primary_current, this->sampling_data_.count);
   });
 
   // Init sampling values
@@ -65,7 +66,7 @@ void OemClampSensor::loop() {
     return;
 
   // Get value relative to estimated 0 (VREF/2)
-  const float measure = std::abs(raw - this->measure_zero_);
+  const float measure = std::abs(raw - this->zero_);
 
   ++this->sampling_data_.count;
   this->sampling_data_.raw_sum += raw;
