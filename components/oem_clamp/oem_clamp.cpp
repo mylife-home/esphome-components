@@ -43,10 +43,10 @@ void OemClamp::update() {
     // primary current
     const float i_rms = sensor_v_rms / this->burden_resistor_value_ * this->ct_turns_;
 
-    this->update_callback_.call(OemClampData{ .i_rms = i_rms, .v_rms = 0, .p_real = 0 });
-
     ESP_LOGD(TAG, "'%s' - sensor_v_rms=%.3fV, i_rms=%.3fA (sample count: %d)",
       this->id_.c_str(), sensor_v_rms, i_rms, this->sampling_data_.count);
+
+    this->update_callback_.call(OemClampData{ .i_rms = i_rms, .v_rms = 0, .p_real = 0 });
   });
 
   // Init sampling values
