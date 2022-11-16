@@ -1,4 +1,4 @@
-#include "oem_clamp_sensor.h"
+#include "oem_clamp.h"
 
 #include "esphome/core/log.h"
 #include <cmath>
@@ -8,8 +8,8 @@ namespace oem_clamp {
 
 static const char *const TAG = "oem_clamp";
 
-void OemClampSensor::dump_config() {
-  LOG_SENSOR("", "CT Clamp Sensor", this);
+void OemClamp::dump_config() {
+  ESP_LOGCONFIG(TAG, "OEM Clamp '%s':", this->id_.c_str());
   ESP_LOGCONFIG(TAG, "  Sample duration: %.2fs", this->sample_duration_ / 1e3f);
   ESP_LOGCONFIG(TAG, "  VREF zero point: %.2fV", this->zero_);
   ESP_LOGCONFIG(TAG, "  Burden resistor value: %dΩ", this->burden_resistor_value_);
@@ -19,7 +19,7 @@ void OemClampSensor::dump_config() {
   LOG_UPDATE_INTERVAL(this);
 }
 
-void OemClampSensor::update() {
+void OemClamp::update() {
   // Update only starts the sampling phase, in loop() the actual sampling is happening.
 
   // Request a high loop() execution interval during sampling phase.
@@ -32,21 +32,21 @@ void OemClampSensor::update() {
 
     if (this->sampling_data_.count == 0) {
       // Shouldn't happen, but let's not crash if it does.
-      this->publish_state(0);
+      // this->publish_state(0);
       return;
     }
 
     // End of sampling, get values
 
     // compute rms
-    const float v_rms = std::sqrt(this->sampling_data_.measure_sum_square / this->sampling_data_.count);
+    const float sensor_v_rms = std::sqrt(this->sampling_data_.measure_sum_square / this->sampling_data_.count);
     // primary current
-    const float primary_current = v_rms / this->burden_resistor_value_ * this->ct_turns_;
+    const float i_rms = sensor_v_rms / this->burden_resistor_value_ * this->ct_turns_;
 
-    this->publish_state(primary_current);
+    this->update_callback_.call(OemClampData{ .i_rms = i_rms, .v_rms = 0, .p_real = 0 });
 
-    ESP_LOGD(TAG, "'%s' - v_rms=%.3fV, primary_current=%.3fA (sample count: %d)",
-      this->name_.c_str(), v_rms, primary_current, this->sampling_data_.count);
+    ESP_LOGD(TAG, "'%s' - sensor_v_rms=%.3fV, i_rms=%.3fA (sample count: %d)",
+      this->id_.c_str(), sensor_v_rms, i_rms, this->sampling_data_.count);
   });
 
   // Init sampling values
@@ -56,7 +56,7 @@ void OemClampSensor::update() {
   this->is_sampling_ = true;
 }
 
-void OemClampSensor::loop() {
+void OemClamp::loop() {
   if (!this->is_sampling_)
     return;
 

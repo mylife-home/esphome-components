@@ -8,7 +8,13 @@
 namespace esphome {
 namespace oem_clamp {
 
-class OemClampSensor : public sensor::Sensor, public PollingComponent {
+struct OemClampData {
+  float i_rms;
+  float v_rms;
+  float p_real;
+};
+
+class OemClamp : public PollingComponent {
  public:
   void update() override;
   void loop() override;
@@ -18,13 +24,22 @@ class OemClampSensor : public sensor::Sensor, public PollingComponent {
     return setup_priority::DATA - 1.0f;
   }
 
+  void set_id(const std::string &id) { this->id_ = id; }
+  const std::string &get_id() const { return this->id_; }
+
   void set_zero(float zero) { this->zero_ = zero; }
   void set_sample_duration(uint32_t sample_duration) { this->sample_duration_ = sample_duration; }
   void set_source(voltage_sampler::VoltageSampler *source) { this->source_ = source; }
   void set_burden_resistor_value(uint32_t burden_resistor_value) { this->burden_resistor_value_ = burden_resistor_value; }
   void set_ct_turns(uint32_t ct_turns) { this->ct_turns_ = ct_turns; }
 
+  void add_on_update_callback(std::function<void(const OemClampData&)> &&callback) { this->update_callback_.add(std::move(callback)); }
+
+  // TODO: Link OemClamp with voltage sensor (to have V inst)
+
  protected:
+  std::string id_;
+
   /// High Frequency loop() requester used during sampling phase.
   HighFrequencyLoopRequester high_freq_;
 
@@ -54,6 +69,7 @@ class OemClampSensor : public sensor::Sensor, public PollingComponent {
   } sampling_data_;
 
   bool is_sampling_ = false;
+  CallbackManager<void(const OemClampData&)> update_callback_{};
 };
 
 }  // namespace oem_clamp
