@@ -11,7 +11,7 @@ static const char *const TAG = "oem_clamp";
 void OemClampSensor::dump_config() {
   LOG_SENSOR("", "CT Clamp Sensor", this);
   ESP_LOGCONFIG(TAG, "  Sample duration: %.2fs", this->sample_duration_ / 1e3f);
-  ESP_LOGCONFIG(TAG, "  VREf zero point: %.2fV", this->zero_);
+  ESP_LOGCONFIG(TAG, "  VREF zero point: %.2fV", this->zero_);
   ESP_LOGCONFIG(TAG, "  Burden resistor value: %dΩ", this->burden_resistor_value_);
   ESP_LOGCONFIG(TAG, "  CT turns: %d", this->ct_turns_);
   // https://tyler.anairo.com/projects/open-energy-monitor-calculator
