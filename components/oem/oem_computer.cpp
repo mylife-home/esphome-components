@@ -1,15 +1,15 @@
-#include "oem_clamp.h"
+#include "oem_computer.h"
 
 #include "esphome/core/log.h"
 #include <cmath>
 
 namespace esphome {
-namespace oem_clamp {
+namespace oem {
 
-static const char *const TAG = "oem_clamp";
+static const char *const TAG = "oem_computer";
 
-void OemClamp::dump_config() {
-  ESP_LOGCONFIG(TAG, "OEM Clamp '%s':", this->id_.c_str());
+void OemComputer::dump_config() {
+  ESP_LOGCONFIG(TAG, "OEM Computer '%s':", this->id_.c_str());
   ESP_LOGCONFIG(TAG, "  Sample duration: %.2fs", this->sample_duration_ / 1e3f);
   ESP_LOGCONFIG(TAG, "  VREF zero point: %.2fV", this->zero_);
   ESP_LOGCONFIG(TAG, "  Burden resistor value: %dΩ", this->burden_resistor_value_);
@@ -19,7 +19,7 @@ void OemClamp::dump_config() {
   LOG_UPDATE_INTERVAL(this);
 }
 
-void OemClamp::update() {
+void OemComputer::update() {
   // Update only starts the sampling phase, in loop() the actual sampling is happening.
 
   // Request a high loop() execution interval during sampling phase.
@@ -46,7 +46,7 @@ void OemClamp::update() {
     ESP_LOGD(TAG, "'%s' - sensor_v_rms=%.3fV, i_rms=%.3fA (sample count: %d)",
       this->id_.c_str(), sensor_v_rms, i_rms, this->sampling_data_.count);
 
-    this->update_callback_.call(OemClampData{ .i_rms = i_rms, .v_rms = 0, .p_real = 0 });
+    this->update_callback_.call(OemComputerData{ .i_rms = i_rms, .v_rms = 0, .p_real = 0 });
   });
 
   // Init sampling values
@@ -56,7 +56,7 @@ void OemClamp::update() {
   this->is_sampling_ = true;
 }
 
-void OemClamp::loop() {
+void OemComputer::loop() {
   if (!this->is_sampling_)
     return;
 
@@ -73,5 +73,5 @@ void OemClamp::loop() {
   this->sampling_data_.measure_sum_square += measure * measure;
 }
 
-}  // namespace oem_clamp
+}  // namespace oem
 }  // namespace esphome

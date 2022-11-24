@@ -6,15 +6,15 @@
 #include "esphome/components/voltage_sampler/voltage_sampler.h"
 
 namespace esphome {
-namespace oem_clamp {
+namespace oem {
 
-struct OemClampData {
+struct OemComputerData {
   float i_rms;
   float v_rms;
   float p_real;
 };
 
-class OemClamp : public PollingComponent {
+class OemComputer : public PollingComponent {
  public:
   void update() override;
   void loop() override;
@@ -33,9 +33,9 @@ class OemClamp : public PollingComponent {
   void set_burden_resistor_value(uint32_t burden_resistor_value) { this->burden_resistor_value_ = burden_resistor_value; }
   void set_ct_turns(uint32_t ct_turns) { this->ct_turns_ = ct_turns; }
 
-  void add_on_update_callback(std::function<void(const OemClampData&)> &&callback) { this->update_callback_.add(std::move(callback)); }
+  void add_on_update_callback(std::function<void(const OemComputerData&)> &&callback) { this->update_callback_.add(std::move(callback)); }
 
-  // TODO: Link OemClamp with voltage sensor (to have V inst)
+  // TODO: Link OemComputer with voltage sensor (to have V inst)
 
  protected:
   std::string id_;
@@ -69,8 +69,8 @@ class OemClamp : public PollingComponent {
   } sampling_data_;
 
   bool is_sampling_ = false;
-  CallbackManager<void(const OemClampData&)> update_callback_{};
+  CallbackManager<void(const OemComputerData&)> update_callback_{};
 };
 
-}  // namespace oem_clamp
+}  // namespace oem
 }  // namespace esphome

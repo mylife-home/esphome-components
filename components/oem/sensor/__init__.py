@@ -8,15 +8,15 @@ from esphome.const import (
   UNIT_AMPERE,
 )
 
-from .. import oem_clamp_ns, OemClamp
+from .. import oem_ns, OemComputer
 
 AUTO_LOAD = ["voltage_sampler"]
 
-CONF_OEM_CLAMP = "oem_clamp"
+CONF_COMPUTER = "computer"
 CONF_TYPE = "type"
 
 
-SensorType = oem_clamp_ns.enum("SensorType")
+SensorType = oem_ns.enum("SensorType")
 TYPES = {
   "current": SensorType.CURRENT,
   "voltage": SensorType.VOLTAGE,
@@ -24,11 +24,11 @@ TYPES = {
   "real_power": SensorType.REAL_POWER,
 }
 
-OemClampSensor = oem_clamp_ns.class_("OemClampSensor", sensor.Sensor, cg.Component)
+OemSensor = oem_ns.class_("OemSensor", sensor.Sensor, cg.Component)
 
 CONFIG_SCHEMA = (
   sensor.sensor_schema(
-    OemClampSensor,
+    OemSensor,
     # will be set inteenrally depending of the type of sensor
     unit_of_measurement=sensor._UNDEF,
     accuracy_decimals=sensor._UNDEF,
@@ -36,7 +36,7 @@ CONFIG_SCHEMA = (
     state_class=sensor._UNDEF,
   )
   .extend({
-    cv.Required(CONF_OEM_CLAMP): cv.use_id(OemClamp),
+    cv.Required(CONF_COMPUTER): cv.use_id(OemComputer),
     cv.Required(CONF_TYPE): cv.enum(TYPES, lower=True),
   })
 )
@@ -45,6 +45,6 @@ async def to_code(config):
   var = await sensor.new_sensor(config)
   await cg.register_component(var, config)
 
-  oem_clamp = await cg.get_variable(config[CONF_OEM_CLAMP])
-  cg.add(var.set_oem_clamp(oem_clamp))
+  computer = await cg.get_variable(config[CONF_COMPUTER])
+  cg.add(var.set_computer(computer))
   cg.add(var.set_type(config[CONF_TYPE]))

@@ -1,4 +1,4 @@
-# Open Energy Monitor CT Clamp
+# Open Energy Monitor CT Sensor
 # https://openenergymonitor.org/
 
 import esphome.codegen as cg
@@ -20,12 +20,12 @@ CONF_ZERO = "vref_zero_point"
 CONF_BURDEN_RESISTOR_VALUE = "burden_resistor_value"
 CONF_CT_TURNS = "ct_turns"
 
-oem_clamp_ns = cg.esphome_ns.namespace("oem_clamp")
-OemClamp = oem_clamp_ns.class_("OemClamp", cg.PollingComponent)
+oem_ns = cg.esphome_ns.namespace("oem")
+OemComputer = oem_ns.class_("OemComputer", cg.PollingComponent)
 
 CONFIG_SCHEMA = (
   cv.Schema({
-    cv.GenerateID(): cv.declare_id(OemClamp),
+    cv.GenerateID(): cv.declare_id(OemComputer),
     cv.Required(CONF_SENSOR): cv.use_id(voltage_sampler.VoltageSampler),
     cv.Optional(CONF_SAMPLE_DURATION, default="200ms"): cv.positive_time_period_milliseconds,
     cv.Optional(CONF_ZERO, default="1.65"): cv.float_range(min=0, min_included=False),
