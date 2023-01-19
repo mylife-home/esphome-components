@@ -22,7 +22,7 @@ class PicoEpanelOutput;
 
 class PicoEpanelController : public Component, public i2c::I2CDevice {
 public:
-  PicoEpanelController() = default;
+  PicoEpanelController(std::string id);
 
   void setup() override;
   void dump_config() override;
@@ -44,6 +44,7 @@ private:
   static void s_intr_pin_handler(PicoEpanelController *this_);
   void refresh_inputs();
 
+  std::string id_;
   std::array<binary_sensor::BinarySensor *, 16> inputs_{{nullptr}};
   InternalGPIOPin *intr_pin_{nullptr};
 };

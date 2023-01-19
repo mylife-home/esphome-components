@@ -48,8 +48,12 @@ private:
 
 static std::unordered_map<uint8_t, SharedInterruptPin> interrupt_pins;
 
+PicoEpanelController::PicoEpanelController(std::string id)
+ : id_(std::move(id)) {
+}
+
 void PicoEpanelController::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up PicoEpanelController...");
+  ESP_LOGCONFIG(TAG, "[%s] Setting up PicoEpanelController...", id_.c_str());
 
   // check magic
   uint16_t read_magic;
@@ -59,7 +63,7 @@ void PicoEpanelController::setup() {
   }
 
   if (read_magic != magic) {
-    ESP_LOGE(TAG, "Wrong magic %hu", read_magic);
+    ESP_LOGE(TAG, "[%s] Wrong magic %hu", id_.c_str(), read_magic);
     this->mark_failed();
     return;
   }
@@ -94,7 +98,7 @@ void PicoEpanelController::setup() {
 }
 
 void PicoEpanelController::dump_config() {
-  ESP_LOGCONFIG(TAG, "PicoEpanelController:");
+  ESP_LOGCONFIG(TAG, "[%s] PicoEpanelController:", id_.c_str());
   ESP_LOGCONFIG(TAG, "  Interrupt pin: %s", this->intr_pin_->dump_summary().c_str());
   if (this->is_failed()) {
     ESP_LOGCONFIG(TAG, "  failed!");
@@ -108,7 +112,7 @@ bool PicoEpanelController::read_u16(uint8_t reg, uint16_t *value) {
     return true;
   }
 
-  ESP_LOGE(TAG, "Could not read register %hu (error=%d)", reg, result);
+  ESP_LOGE(TAG, "[%s] Could not read register %hu (error=%d)", id_.c_str(), reg, result);
   this->status_set_warning();
   return false;
 }
@@ -120,7 +124,7 @@ bool PicoEpanelController::write_u16(uint8_t reg, const uint16_t value) {
     return true;
   }
 
-  ESP_LOGE(TAG, "Could not write register %hu (error=%d)", reg, result);
+  ESP_LOGE(TAG, "[%s] Could not write register %hu (error=%d)", id_.c_str(), reg, result);
   this->status_set_warning();
   return false;
 }
@@ -131,7 +135,7 @@ std::bitset<16> PicoEpanelController::read_inputs() {
     return 0;
   }
 
-  ESP_LOGD(TAG, "Read inputs %hu", data);
+  ESP_LOGD(TAG, "[%s] Read inputs %hu", id_.c_str(), data);
 
   return {data};
 }
@@ -151,7 +155,7 @@ float PicoEpanelController::read_internal_temp() {
   // T = 27 - (ADC_Voltage - 0.706)/0.001721
   float temp = 27 - (adc_voltage - 0.706) / 0.001721;
 
-  ESP_LOGD(TAG, "Read internal temp %f C (raw=%hu)", temp, raw);
+  ESP_LOGD(TAG, "[%s] Read internal temp %f C (raw=%hu)", id_.c_str(), temp, raw);
 
   return temp;
 }
@@ -173,7 +177,7 @@ void PicoEpanelController::write_output(uint8_t index, uint8_t value) {
     return;
   }
   
-  ESP_LOGD(TAG, "Write output @ %d -> %d", index, value);
+  ESP_LOGD(TAG, "[%s] Write output @ %d -> %d", id_.c_str(), index, value);
 
   uint16_t data = ((uint16_t)index << 8) | value;
   this->write_u16(REG_OUTPUTS, data);
