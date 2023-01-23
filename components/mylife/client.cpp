@@ -27,6 +27,54 @@ namespace mylife {
 
 static const char *const TAG = "mylife";
 
+class Cleaner {
+public:
+  explicit Cleaner(MylifeClientComponent *owner)
+   : owner_(owner) {
+
+    this->owner_->subscribe(this->build_topic(), [this](const std::string &topic, const std::string &payload) {
+      if (payload.size() > 0) {
+        this->queue_.emplace(topic);
+      }
+    });
+  }
+
+  ~Cleaner() {
+    this->owner_->unsubscribe(this->build_topic());
+  }
+
+  void loop() {
+    // clean for 20 ms
+    const auto until = millis() + 20;
+
+    while (millis() < until && !this->queue_.empty()) {
+      auto topic = this->queue_.front();
+      this->queue_.pop();
+      ++this->count_;
+
+      // ESP_LOGD(TAG, "MQTT Cleaning '%s'", topic.c_str());
+      this->owner_->publish(topic, nullptr, 0, 0, true);
+    }
+  }
+
+  bool is_done() const {
+    return this->queue_.empty();
+  }
+
+  std::size_t cleaned_count() const {
+    return this->count_;
+  }
+
+private:
+  std::string build_topic() const {
+    return this->owner_->build_topic("#");
+  }
+
+  MylifeClientComponent *owner_;
+  std::size_t count_{0};
+  std::queue<std::string> queue_;
+};
+
 MylifeClientComponent::MylifeClientComponent()
  : metadata_(this)
  , logger_(this)
@@ -254,30 +302,28 @@ void MylifeClientComponent::check_connected() {
 
   // clean all message for 2 secs
   ESP_LOGD(TAG, "MQTT Cleaning");
-  this->subscribe(this->build_topic("#"), [this](const std::string &topic, const std::string &payload) {
-    if (payload.size() > 0) {
-      this->defer([this, topic] () {
-        ESP_LOGD(TAG, "MQTT Cleaning '%s'", topic.c_str());
-        this->publish(topic, nullptr, 0, 0, true);
-      });
-    }
-  });
+  this->cleaner_ = make_unique<Cleaner>(this);
 }
 
 void MylifeClientComponent::check_cleaned() {
   if (!this->mqtt_backend_.connected()) {
     this->state_ = MQTT_CLIENT_DISCONNECTED;
+    this->cleaner_ = nullptr;
+
     ESP_LOGW(TAG, "Lost MQTT Client connection while cleaning!");
     this->start_dnslookup_();
-  }
-
-  // wait 2 secs
-  if (millis() - this->start_clean_ < 2000) {
     return;
   }
 
-  this->unsubscribe(this->build_topic("#"));
-  ESP_LOGD(TAG, "MQTT Cleaned");
+  this->cleaner_->loop();
+
+  // wait 2 secs
+  if (millis() - this->start_clean_ < 2000 || !this->cleaner_->is_done()) {
+    return;
+  }
+
+  ESP_LOGD(TAG, "MQTT Cleaned %d topics", this->cleaner_->cleaned_count());
+  this->cleaner_ = nullptr;
 
   this->state_ = MQTT_CLIENT_CONNECTED;
   this->status_clear_warning();

@@ -29,6 +29,7 @@ namespace mylife {
 
 class MylifeController;
 struct PluginDefinition;
+class Cleaner;
 
 /** Callback for MQTT subscriptions.
  *
@@ -185,6 +186,7 @@ class MylifeClientComponent : public Component {
   std::string will_topic_buffer_;
 
   std::vector<Subscription> subscriptions_;
+  std::unique_ptr<Cleaner> cleaner_;
 #if defined(USE_ESP_IDF)
   mqtt::MQTTBackendIDF mqtt_backend_;
 #elif defined(USE_ARDUINO)
