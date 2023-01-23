@@ -183,12 +183,6 @@ void PicoEpanelController::write_output(uint8_t index, uint8_t value) {
   this->write_u16(REG_OUTPUTS, data);
 }
 
-void PicoEpanelController::s_intr_pin_handler(PicoEpanelController *this_) {
-  this_->defer([this_]() {
-    this_->refresh_inputs();
-  });
-}
-
 void PicoEpanelController::refresh_inputs() {
   auto values = read_inputs();
 

@@ -41,7 +41,6 @@ private:
   std::bitset<16> read_inputs();
   void write_output(uint8_t index, uint8_t value);
 
-  static void s_intr_pin_handler(PicoEpanelController *this_);
   void refresh_inputs();
 
   std::string id_;
