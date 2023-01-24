@@ -8,6 +8,7 @@
 #include "esphome/components/network/util.h"
 #include <utility>
 #include <sstream>
+#include <queue>
 #include "lwip/err.h"
 #include "lwip/dns.h"
 
