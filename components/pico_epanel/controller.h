@@ -19,12 +19,14 @@ namespace esphome {
 namespace pico_epanel {
 
 class PicoEpanelOutput;
+class SharedInterruptPin;
 
 class PicoEpanelController : public Component, public i2c::I2CDevice {
 public:
   PicoEpanelController(std::string id);
 
   void setup() override;
+  void loop() override;
   void dump_config() override;
 
   void set_interrupt_pin(InternalGPIOPin *intr_pin) { intr_pin_ = intr_pin; }
@@ -46,6 +48,8 @@ private:
   std::string id_;
   std::array<binary_sensor::BinarySensor *, 16> inputs_{{nullptr}};
   InternalGPIOPin *intr_pin_{nullptr};
+  SharedInterruptPin *owned_intr_pin_{nullptr}; // only set if we own it
+  
 };
 
 }  // namespace pico_epanel

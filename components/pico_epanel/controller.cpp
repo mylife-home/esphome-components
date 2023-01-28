@@ -33,17 +33,29 @@ public:
     this->callback_.add(std::move(callback));
   }
 
-  InternalGPIOPin *pin() const {
-    return pin_;
+ InternalGPIOPin *pin() const {
+    return this->pin_;
+  }
+
+  // here we are cheating:
+  // we will run every callback from the first component that created the shared pin
+  void loop() {
+    bool pending_callback = true;
+    this->pending_callback_.compare_exchange_strong(pending_callback, false);
+
+    if (pending_callback) {
+      this->callback_.call();
+    }
   }
 
 private:
-  static void s_pin_handler(SharedInterruptPin *this_) {
-    this_->callback_.call();
+  IRAM_ATTR HOT static void s_pin_handler(SharedInterruptPin *this_) {
+    this_->pending_callback_ = true;
   }
 
   CallbackManager<void()> callback_{};
   InternalGPIOPin *pin_{nullptr};
+  std::atomic<bool> pending_callback_{false};
 };
 
 static std::unordered_map<uint8_t, SharedInterruptPin> interrupt_pins;
@@ -86,15 +98,20 @@ void PicoEpanelController::setup() {
 
   if (inserted) {
     shared_intr_pin.setup();
+    this->owned_intr_pin_ = &shared_intr_pin;
   }
 
   this->intr_pin_ = shared_intr_pin.pin();
 
   shared_intr_pin.register_callback([this]() {
-    this->defer([this]() {
-      this->refresh_inputs();
-    });
+    this->refresh_inputs();
   });
+}
+
+void PicoEpanelController::loop() {
+  if (this->owned_intr_pin_) {
+    this->owned_intr_pin_->loop();
+  }
 }
 
 void PicoEpanelController::dump_config() {
