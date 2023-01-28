@@ -11,6 +11,8 @@
 #include <sstream>
 #include <iomanip>
 
+#define BUFFER_FLUSH_LOOP_TIME 20
+
 namespace esphome {
 namespace mylife {
 
@@ -55,17 +57,24 @@ public:
     this->buffer_.emplace(std::move(item));
   }
 
-  void flush(const std::function<bool(const Timestamp& timestamp, int level, const char *tag, const char *message)> &callback) {
-    while (this->buffer_.size() > 0) {
-      const auto &item = this->buffer_.front();
-
-      if (!callback(item->timestamp , item->level, item->tag.c_str(), item->message.c_str())) {
-        break;
-      }
-
-      this->size_ -= item->allocated_size;
-      this->buffer_.pop();
+  bool pop(const std::function<bool(const Timestamp& timestamp, int level, const char *tag, const char *message)> &callback) {
+    if (this->buffer_.empty()) {
+      return false;
     }
+
+    const auto &item = this->buffer_.front();
+
+    if (!callback(item->timestamp , item->level, item->tag.c_str(), item->message.c_str())) {
+      return false;
+    }
+
+    this->size_ -= item->allocated_size;
+    this->buffer_.pop();
+    return true;
+  }
+
+  bool empty() const {
+    return this->buffer_.empty();
   }
 
 private:
@@ -77,18 +86,12 @@ Logger::Logger(MylifeClientComponent *client)
  : client_(client)
  , buffer_(make_unique<LogBuffer>()) {
 
-  client_->add_on_online_callback([this](bool online) {
-    if (online) {
-      this->try_flush();
-    }
-  });
-
 #ifdef USE_LOGGER
   if (logger::global_logger != nullptr) {
     logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
       auto ts = this->now();
 
-      if (!this->output(ts, level, tag, message)) {
+      if (!this->buffer_->empty() || !this->client_->is_connected() || !this->rtc_synced_ || !this->write(ts, level, tag, message)) {
         this->buffer_->add(std::move(ts), level, tag, message);
       }
     });
@@ -103,19 +106,23 @@ void Logger::set_rtc(time::RealTimeClock *rtc) {
 
   this->rtc_->add_on_time_sync_callback([this]() {
     this->rtc_synced_ = true;
-    this->try_flush();
   });
 }
 
-bool Logger::can_output() const {
-  return this->rtc_synced_ && this->client_->is_connected();
-}
-
-bool Logger::output(const Timestamp& timestamp, int level, const char *tag, const char *message) {
-  if (!this->can_output()) {
-    return false;
+void Logger::loop() {
+  if (this->buffer_->empty() || !this->client_->is_connected() || !this->rtc_synced_) {
+    return;
   }
 
+  // flush for 20 ms
+  const auto until = millis() + BUFFER_FLUSH_LOOP_TIME;
+
+  while (millis() < until && this->client_->is_connected() && this->buffer_->pop([this](const Timestamp& timestamp, int level, const char *tag, const char *message) -> bool {
+    return this->write(timestamp, level, tag, message);
+  }));
+}
+
+bool Logger::write(const Timestamp& timestamp, int level, const char *tag, const char *message) {
   auto topic = client_->build_topic("logger");
 
   auto payload = json::build_json([&](JsonObject root) {
@@ -130,14 +137,6 @@ bool Logger::output(const Timestamp& timestamp, int level, const char *tag, cons
   });
 
   return client_->publish(topic, payload);
-}
-
-void Logger::try_flush() {
-  if (this->can_output()) {
-    buffer_->flush([&](const Timestamp& timestamp, int level, const char *tag, const char *message) -> bool {
-      return this->output(timestamp, level, tag, message);
-    });
-  }
 }
 
 Timestamp Logger::now() {

@@ -23,6 +23,8 @@
 #include "controller_factory.h"
 #include "encoding.h"
 
+#define TOPIC_CLEANER_LOOP_TIME 20
+
 namespace esphome {
 namespace mylife {
 
@@ -46,7 +48,7 @@ public:
 
   void loop() {
     // clean for 20 ms
-    const auto until = millis() + 20;
+    const auto until = millis() + TOPIC_CLEANER_LOOP_TIME;
 
     while (millis() < until && !this->queue_.empty()) {
       auto topic = this->queue_.front();
@@ -388,7 +390,7 @@ static void log_disconnect(mqtt::MQTTClientDisconnectReason reason) {
 
 void MylifeClientComponent::loop() {
   // Call the backend loop first
-  mqtt_backend_.loop();
+  this->mqtt_backend_.loop();
 
   if (this->disconnect_reason_.has_value()) {
     log_disconnect(*this->disconnect_reason_);
@@ -420,6 +422,8 @@ void MylifeClientComponent::loop() {
     ESP_LOGE(TAG, "Can't connect to MQTT... Restarting...");
     App.reboot();
   }
+
+  this->logger_.loop();
 }
 
 float MylifeClientComponent::get_setup_priority() const { return setup_priority::AFTER_WIFI; }

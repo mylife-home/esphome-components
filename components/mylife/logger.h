@@ -20,10 +20,9 @@ public:
   ~Logger();
 
   void set_rtc(time::RealTimeClock *rtc);
+  void loop();
 private:
-  bool can_output() const;
-  bool output(const Timestamp& timestamp, int level, const char *tag, const char *message);
-  void try_flush();
+  bool write(const Timestamp& timestamp, int level, const char *tag, const char *message);
   Timestamp now();
   std::string to_time(const Timestamp &timestamp);
   int to_level(int level);
