@@ -169,8 +169,8 @@ std::string Logger::to_time(const Timestamp &timestamp) {
     }
   }
 
-  // 2021-11-23T15:01:04.655Z
-  return time::ESPTime::from_epoch_local(time).strftime("%FT%TZ");
+  // 2023-01-30T11:14:35+0100
+  return time::ESPTime::from_epoch_local(time).strftime("%FT%T%z");
 }
 
 int Logger::to_level(int level) {
