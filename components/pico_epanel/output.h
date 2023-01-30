@@ -16,8 +16,7 @@ public:
   void add_on_write_callback(std::function<void(float)> &&callback) { this->on_write_callback_.add(std::move(callback)); }
 
   void loop() override {
-    bool has_pending_value = true;
-    this->has_pending_value_.compare_exchange_strong(has_pending_value, false);
+    bool has_pending_value = this->has_pending_value_.exchange(false);
 
     if (has_pending_value) {
       this->on_write_callback_.call(this->pending_value_);
