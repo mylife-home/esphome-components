@@ -177,7 +177,7 @@ float PicoEpanelController::read_internal_temp() {
   return temp;
 }
 
-inline uint8_t color_ftou(float value) {
+static inline uint8_t color_ftou(float value) {
   return static_cast<uint8_t>(value * 255);
 }
 
