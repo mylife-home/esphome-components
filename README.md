@@ -1,6 +1,7 @@
 # Dev Ops
 
 ## Bump
+
 - update components/mylife/version.h
 - create tag release in github
 - update prod `external_components` (`common/base.yaml`)
@@ -37,3 +38,9 @@ https://github.com/vincent-tr/arduino-sketches
 # Notes
 
 - Sonoff S26 : https://tasmota.github.io/docs/devices/Sonoff-S26-Smart-Socket/
+
+# Bugs
+
+- apparememnt garage-door-driver des fois ne publie pas toute la metadata : il manque des composants
+  le dump de config pour les composants semblent etre tronqué aussi mais les manques ne correrspondent pas
+  peut etre lié a ESP8266 => moins de RAM + wifi garage => moins de débit ?
