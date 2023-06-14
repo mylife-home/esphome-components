@@ -21,8 +21,6 @@ void EnergyPublisher::setup() {
       this->do_publish();
     }
   });
-
-  this->do_publish();
 }
 
 static std::string state_class_to_str(sensor::StateClass class_) {
