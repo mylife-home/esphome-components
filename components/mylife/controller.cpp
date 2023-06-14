@@ -18,7 +18,10 @@ MylifeController::MylifeController(MylifeClientComponent *client, EntityBase *ta
 
   client_->add_on_online_callback([this](bool online) {
     if (online) {
-      this->publish_states();
+      // Delay a bit to be sure meta is OK before sending states
+      this->set_timeout(100, [this]() {
+        this->publish_states();
+      });
     }
   });
 }
