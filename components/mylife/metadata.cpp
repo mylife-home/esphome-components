@@ -41,14 +41,6 @@ std::string PluginDefinition::make_meta(std::string template_string) {
 
 Metadata::Metadata(MylifeClientComponent *client)
  : client_(client) {
-
-  client_->add_on_online_callback([this](bool online) {
-    if (online) {
-      this->publish_plugins();
-      this->publish_components();
-      this->publish_instance_info();
-    }
-  });
 }
 
 void Metadata::build(const std::vector<std::unique_ptr<MylifeController>> &controllers) {
@@ -57,6 +49,12 @@ void Metadata::build(const std::vector<std::unique_ptr<MylifeController>> &contr
     plugins_.emplace(plugin);
     components_.emplace_back(ComponentDefinition{ .id = controller->get_component_id(), .plugin = plugin });
   }
+}
+
+void Metadata::publish() {
+  this->publish_plugins();
+  this->publish_components();
+  this->publish_instance_info();
 }
 
 void Metadata::publish_plugins() {

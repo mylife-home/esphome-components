@@ -335,8 +335,15 @@ void MylifeClientComponent::check_cleaned() {
   this->publish_online(true);
   this->last_connected_ = millis();
   this->resubscribe_subscriptions_();
+
+  // To avoid mqtt send congestion, first publish meta,
+  // then after a delay publish online event so that components can publish states
+  this->metadata_.publish();
   
-  this->online_callback_.call(true);
+  this->set_timeout(100, [this]() {
+    if (this->can_send())
+      this->online_callback_.call(true);
+  });
 }
 
 void MylifeClientComponent::check_disconnected() {

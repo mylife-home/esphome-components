@@ -32,6 +32,7 @@ public:
   explicit Metadata(MylifeClientComponent *client);
 
   void build(const std::vector<std::unique_ptr<MylifeController>> &controllers);
+  void publish();
   void update();
 private:
   void publish_plugins();
