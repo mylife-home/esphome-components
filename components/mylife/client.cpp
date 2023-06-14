@@ -493,7 +493,7 @@ void MylifeClientComponent::unsubscribe(const std::string &topic) {
     ESP_LOGV(TAG, "unsubscribe(topic='%s')", topic.c_str());
   } else {
     delay(5);
-    ESP_LOGV(TAG, "Unsubscribe failed for topic='%s'.", topic.c_str());
+    ESP_LOGE(TAG, "Unsubscribe failed for topic='%s'.", topic.c_str());
     this->status_momentary_warning("unsubscribe", 1000);
   }
 
@@ -520,18 +520,20 @@ bool MylifeClientComponent::publish(const std::string &topic, const char *payloa
 bool MylifeClientComponent::publish(const mqtt::MQTTMessage &message) {
   if (!this->can_send()) {
     // critical components will re-transmit their messages
+    ESP_LOGW(TAG, "Could not send message to topic '%s' (can_send=false).", message.topic.c_str());
     return false;
   }
   
   bool ret = this->mqtt_backend_.publish(message);
   delay(0);
   if (!ret && this->can_send()) {
-    delay(0);
+    delay(5);
     ret = this->mqtt_backend_.publish(message);
     delay(0);
   }
 
   if (!ret) {
+    ESP_LOGE(TAG, "Could not send message to topic '%s'.", message.topic.c_str());
     this->status_momentary_warning("publish", 1000);
   }
 
