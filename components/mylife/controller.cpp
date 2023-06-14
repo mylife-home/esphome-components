@@ -18,7 +18,6 @@ MylifeController::MylifeController(MylifeClientComponent *client, EntityBase *ta
 
   client_->add_on_online_callback([this](bool online) {
     if (online) {
-      this->publish_metadata();
       this->publish_states();
     }
   });
@@ -45,17 +44,6 @@ void MylifeController::publish_state(const std::string &state, const std::string
 
 std::string MylifeController::build_member_topic(const std::string &member) const {
   return client_->build_topic({"components", this->get_component_id(), member});
-}
-
-void MylifeController::publish_metadata() {
-  auto topic = client_->build_topic({"metadata/components", this->id_});
-
-  auto payload = json::build_json([this](JsonObject root) {
-    root["id"] = this->id_;
-    root["plugin"] = this->get_plugin_metadata()->id;
-  });
-
-  client_->publish(topic, payload.data(), payload.size(), 0, true);
 }
 
 }  // namespace mylife

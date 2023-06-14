@@ -30,7 +30,6 @@ protected:
 
 private:
   std::string build_member_topic(const std::string &member) const;
-  void publish_metadata();
 
   MylifeClientComponent *client_;
   std::string id_;

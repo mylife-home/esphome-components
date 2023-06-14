@@ -45,14 +45,17 @@ Metadata::Metadata(MylifeClientComponent *client)
   client_->add_on_online_callback([this](bool online) {
     if (online) {
       this->publish_plugins();
+      this->publish_components();
       this->publish_instance_info();
     }
   });
 }
 
-void Metadata::build_plugins(const std::vector<std::unique_ptr<MylifeController>> &controllers) {
+void Metadata::build(const std::vector<std::unique_ptr<MylifeController>> &controllers) {
   for (const auto &controller : controllers) {
-    plugins_.emplace(controller->get_plugin_metadata());
+    const auto *plugin = controller->get_plugin_metadata();
+    plugins_.emplace(plugin);
+    components_.emplace_back(ComponentDefinition{ .id = controller->get_component_id(), .plugin = plugin });
   }
 }
 
@@ -60,6 +63,19 @@ void Metadata::publish_plugins() {
   for (const auto *plugin : plugins_) {
     auto topic = client_->build_topic({"metadata/plugins", plugin->id});
     client_->publish(topic, plugin->metadata, 0, true);
+  }
+}
+
+void Metadata::publish_components() {
+  for (const auto &component : components_) {
+    auto topic = client_->build_topic({"metadata/components", component.id});
+
+    auto payload = json::build_json([&component](JsonObject root) {
+      root["id"] = component.id;
+      root["plugin"] = component.plugin->id;
+    });
+
+    client_->publish(topic, payload.data(), payload.size(), 0, true);
   }
 }
 

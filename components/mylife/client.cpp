@@ -94,7 +94,7 @@ void MylifeClientComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Mylife...");
 
   this->controllers_ = MylifeControllerFactory::build(this);
-  this->metadata_.build_plugins(controllers_);
+  this->metadata_.build(controllers_);
   
   this->set_interval(60000, [this]() {
     this->metadata_.update();
