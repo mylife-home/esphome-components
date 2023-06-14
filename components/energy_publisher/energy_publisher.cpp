@@ -39,6 +39,10 @@ static std::string state_class_to_str(sensor::StateClass class_) {
 }
 
 void EnergyPublisher::do_publish() {
+  if (!client_->is_connected()) {
+    return;
+  }
+
   if (!this->sensor_->has_state()) {
     ESP_LOGW(TAG, "Sensor '%s' has no state, will not publish.", this->id_.c_str());
     return;
