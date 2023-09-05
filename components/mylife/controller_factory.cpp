@@ -29,6 +29,7 @@
 #endif
 #ifdef USE_CLIMATE
 #include "esphome/components/climate/climate.h"
+#include "controller_climate.h"
 #endif
 #ifdef USE_LIGHT
 #include "esphome/components/light/light_state.h"
@@ -84,8 +85,7 @@ static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent
 
 #ifdef USE_CLIMATE
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, climate::Climate *component) {
-  ESP_LOGI(TAG, "Skipping unsupported component '%s' of type 'Climate'", component->get_name().c_str());
-  return nullptr;
+  return make_unique<MylifeClimate>(client, component);
 }
 #endif
 
