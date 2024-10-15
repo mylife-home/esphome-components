@@ -3,7 +3,6 @@
 
 #include "esphome/core/defines.h"
 #include "esphome/components/json/json_util.h"
-#include "esphome/components/ota/ota_component.h"
 #include <map>
 #include <memory>
 
@@ -19,7 +18,7 @@ public:
   virtual ~RpcCall() = default;
 
   // Need parse and build as different methods because it uses same buffer
-  virtual void parse_input(JsonVariant& input) = 0;
+  virtual bool parse_input(JsonVariant& input) = 0;
   virtual void execute() = 0;
   virtual void build_output(JsonObject& output) = 0;
 };
@@ -44,15 +43,14 @@ public:
 class Rpc {
 public:
   explicit Rpc(MylifeClientComponent *client);
-  void set_ota(ota::OTAComponent *ota);
 
   void serve(const std::string &address, std::unique_ptr<RpcService> service);
 
   void serve_restart();
 private:
+  void reply_error(const std::string &reply_topic, const std::string &message, const std::string &stacktrace = "");
 
   MylifeClientComponent *client_;
-  ota::OTAComponent *ota_;
   // Only as holder
   std::vector<std::unique_ptr<RpcService>> services_;
 };

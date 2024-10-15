@@ -1,18 +1,47 @@
 #pragma once
 
-#ifdef USE_ESP_IDF
+#include "mqtt_backend.h"
+#ifdef USE_ESP32
 
 #include <string>
 #include <queue>
 #include <mqtt_client.h>
 #include "esphome/components/network/ip_address.h"
 #include "esphome/core/helpers.h"
-#include "mqtt_backend.h"
 
 namespace esphome {
 namespace mqtt {
 
-class MQTTBackendIDF final : public MQTTBackend {
+struct Event {
+  esp_mqtt_event_id_t event_id;
+  std::vector<char> data;
+  int total_data_len;
+  int current_data_offset;
+  std::string topic;
+  int msg_id;
+  bool retain;
+  int qos;
+  bool dup;
+  bool session_present;
+  esp_mqtt_error_codes_t error_handle;
+
+  // Construct from esp_mqtt_event_t
+  // Any pointer values that are unsafe to keep are converted to safe copies
+  Event(const esp_mqtt_event_t &event)
+      : event_id(event.event_id),
+        data(event.data, event.data + event.data_len),
+        total_data_len(event.total_data_len),
+        current_data_offset(event.current_data_offset),
+        topic(event.topic, event.topic_len),
+        msg_id(event.msg_id),
+        retain(event.retain),
+        qos(event.qos),
+        dup(event.dup),
+        session_present(event.session_present),
+        error_handle(*event.error_handle) {}
+};
+
+class MQTTBackendESP32 final : public MQTTBackend {
  public:
   static const size_t MQTT_BUFFER_SIZE = 4096;
 
@@ -95,11 +124,13 @@ class MQTTBackendIDF final : public MQTTBackend {
   void loop() final;
 
   void set_ca_certificate(const std::string &cert) { ca_certificate_ = cert; }
+  void set_cl_certificate(const std::string &cert) { cl_certificate_ = cert; }
+  void set_cl_key(const std::string &key) { cl_key_ = key; }
   void set_skip_cert_cn_check(bool skip_check) { skip_cert_cn_check_ = skip_check; }
 
  protected:
   bool initialize_();
-  void mqtt_event_handler_(const esp_mqtt_event_t &event);
+  void mqtt_event_handler_(const Event &event);
   static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
 
   struct MqttClientDeleter {
@@ -125,6 +156,8 @@ class MQTTBackendIDF final : public MQTTBackend {
   uint16_t keep_alive_;
   bool clean_session_;
   optional<std::string> ca_certificate_;
+  optional<std::string> cl_certificate_;
+  optional<std::string> cl_key_;
   bool skip_cert_cn_check_{false};
 
   // callbacks
@@ -134,7 +167,7 @@ class MQTTBackendIDF final : public MQTTBackend {
   CallbackManager<on_unsubscribe_callback_t> on_unsubscribe_;
   CallbackManager<on_message_callback_t> on_message_;
   CallbackManager<on_publish_user_callback_t> on_publish_;
-  std::queue<esp_mqtt_event_t> mqtt_events_;
+  std::queue<Event> mqtt_events_;
 };
 
 }  // namespace mqtt

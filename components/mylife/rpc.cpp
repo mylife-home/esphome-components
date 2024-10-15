@@ -34,25 +34,20 @@ interface Response {
 
 class RestartRpcCall : public RpcCall{
 public:
-  explicit RestartRpcCall(MylifeClientComponent *client, ota::OTAComponent *ota)
-   : client_(client)
-   , ota_(ota) {
+  explicit RestartRpcCall(MylifeClientComponent *client)
+   : client_(client) {
   }
 
   virtual ~RestartRpcCall() = default;
 
   // Need parse and build as different methods because it uses same buffer
-  virtual void parse_input(JsonVariant& input) override {
-    fail_safe_ = input["failSafe"];
+  virtual bool parse_input(JsonVariant& /*input*/) override {
+    // fail_safe_ = input["failSafe"];
+    return true;
   }
 
   virtual void execute() override {
-    if (fail_safe_) {
-      ESP_LOGI(TAG, "Restarting device (using rpc service) in safe mode...");
-      this->ota_->set_safe_mode_pending(true);
-    } else {
-      ESP_LOGI(TAG, "Restarting device (using rpc service)...");
-    }
+    ESP_LOGI(TAG, "Restarting device (using rpc service)...");
 
     // Let MQTT settle a bit
     App.scheduler.set_timeout(this->client_, "", 100, []() {
@@ -65,35 +60,27 @@ public:
 
 private:
   MylifeClientComponent *client_; // use for set_timeout
-  ota::OTAComponent *ota_;
-  bool fail_safe_;
 };
 
 class RestartRpcService : public RpcService {
 public:
-  explicit RestartRpcService(MylifeClientComponent *client, ota::OTAComponent *ota)
-   : client_(client)
-   , ota_(ota) {
+  explicit RestartRpcService(MylifeClientComponent *client)
+   : client_(client) {
   }
 
   virtual ~RestartRpcService() = default;
 
   virtual std::unique_ptr<RpcCall> call() override {
-    return make_unique<RestartRpcCall>(this->client_, this->ota_);
+    return make_unique<RestartRpcCall>(this->client_);
   }
 
 private:
   MylifeClientComponent *client_; // use for set_timeout
-  ota::OTAComponent *ota_;
 };
 
 
 Rpc::Rpc(MylifeClientComponent *client)
  : client_(client) {
-}
-
-void Rpc::set_ota(ota::OTAComponent *ota) {
-  this->ota_ = ota;
 }
 
 void Rpc::serve(const std::string &address, std::unique_ptr<RpcService> service) {
@@ -107,12 +94,15 @@ void Rpc::serve(const std::string &address, std::unique_ptr<RpcService> service)
     auto call_ptr = call.get();
     std::string reply_topic;
 
-    json::parse_json(payload, [call_ptr, &reply_topic](JsonObject root) {
+    if (!json::parse_json(payload, [call_ptr, &reply_topic](JsonObject root) -> bool {
       JsonVariant input = root["input"];
       reply_topic = root["replyTopic"].as<std::string>();
 
-      call_ptr->parse_input(input);
-    });
+      return call_ptr->parse_input(input);
+    })) {
+      this->reply_error(reply_topic, "Failed to parse input");
+      return;
+    }
 
     call_ptr->execute();
 
@@ -126,8 +116,22 @@ void Rpc::serve(const std::string &address, std::unique_ptr<RpcService> service)
   });
 }
 
+void Rpc::reply_error(const std::string &reply_topic, const std::string &message, const std::string &stacktrace) {
+    ESP_LOGE(TAG, "RPC error: %s %s", message.c_str(), stacktrace.c_str());
+
+  auto reply_payload = json::build_json([message, stacktrace](JsonObject root) {
+    // Note: cannot report error
+    auto error = root.createNestedObject("error");
+    error["message"] = message;
+    error["stacktrace"] = stacktrace;
+  });
+
+  this->client_->publish(reply_topic, reply_payload);
+}
+
+
 void Rpc::serve_restart() {
-  this->serve("system.restart", make_unique<RestartRpcService>(this->client_, this->ota_));
+  this->serve("system.restart", make_unique<RestartRpcService>(this->client_));
 }
 
 }  // namespace mylife

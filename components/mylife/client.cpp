@@ -171,22 +171,18 @@ void MylifeClientComponent::start_dnslookup_() {
   this->dns_resolve_error_ = false;
   this->dns_resolved_ = false;
   ip_addr_t addr;
-#ifdef USE_ESP32
-  err_t err = dns_gethostbyname_addrtype(this->credentials_.address.c_str(), &addr, MylifeClientComponent::dns_found_callback, this, LWIP_DNS_ADDRTYPE_IPV4);
-#endif
-#ifdef USE_ESP8266
-  err_t err = dns_gethostbyname(this->credentials_.address.c_str(), &addr, MylifeClientComponent::dns_found_callback, this);
-#endif
+#if USE_NETWORK_IPV6
+  err_t err = dns_gethostbyname_addrtype(this->credentials_.address.c_str(), &addr,
+                                         MylifeClientComponent::dns_found_callback, this, LWIP_DNS_ADDRTYPE_IPV6_IPV4);
+#else
+  err_t err = dns_gethostbyname_addrtype(this->credentials_.address.c_str(), &addr,
+                                         MylifeClientComponent::dns_found_callback, this, LWIP_DNS_ADDRTYPE_IPV4);
+#endif /* USE_NETWORK_IPV6 */
   switch (err) {
     case ERR_OK: {
       // Got IP immediately
       this->dns_resolved_ = true;
-#ifdef USE_ESP32
-      this->ip_ = addr.u_addr.ip4.addr;
-#endif
-#ifdef USE_ESP8266
-      this->ip_ = addr.addr;
-#endif
+      this->ip_ = network::IPAddress(&addr);
       this->start_connect_();
       return;
     }
@@ -198,11 +194,7 @@ void MylifeClientComponent::start_dnslookup_() {
     default:
     case ERR_ARG: {
       // error
-#if defined(USE_ESP8266)
-      ESP_LOGW(TAG, "Error resolving MQTT broker IP address: %ld", err);
-#else
       ESP_LOGW(TAG, "Error resolving MQTT broker IP address: %d", err);
-#endif
       break;
     }
   }
@@ -237,12 +229,7 @@ void MylifeClientComponent::dns_found_callback(const char *name, const ip_addr_t
   if (ipaddr == nullptr) {
     a_this->dns_resolve_error_ = true;
   } else {
-#ifdef USE_ESP32
-    a_this->ip_ = ipaddr->u_addr.ip4.addr;
-#endif
-#ifdef USE_ESP8266
-    a_this->ip_ = ipaddr->addr;
-#endif
+    a_this->ip_ = network::IPAddress(ipaddr);
     a_this->dns_resolved_ = true;
   }
 }
@@ -265,7 +252,7 @@ void MylifeClientComponent::start_connect_() {
 
   this->mqtt_backend_.set_credentials(username, password);
 
-  this->mqtt_backend_.set_server((uint32_t) this->ip_, this->credentials_.port);
+  this->mqtt_backend_.set_server(this->credentials_.address.c_str(), this->credentials_.port);
 
   // Remove online
   // Note: because we pass c_str(), the buffer need to be kept until used
@@ -623,7 +610,6 @@ void MylifeClientComponent::on_message(const std::string &topic, const std::stri
 void MylifeClientComponent::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
 void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_backend_.set_keep_alive(keep_alive_s); }
 void MylifeClientComponent::set_rtc(time::RealTimeClock *rtc) { this->logger_.set_rtc(rtc); }
-void MylifeClientComponent::set_ota(ota::OTAComponent *ota) { this->rpc_.set_ota(ota); }
 
 std::string MylifeClientComponent::build_topic(const std::string &suffix) const {
   return App.get_name() + "-core/" + suffix;

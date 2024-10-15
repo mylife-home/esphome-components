@@ -5,7 +5,6 @@ import esphome.config_validation as cv
 from esphome import automation
 from esphome.automation import Condition
 from esphome.components import logger
-from esphome.components.ota import OTAComponent
 from esphome.components.time import RealTimeClock
 
 from esphome.const import (
@@ -14,7 +13,6 @@ from esphome.const import (
     CONF_CLIENT_ID,
     CONF_ID,
     CONF_KEEPALIVE,
-    CONF_OTA,
     CONF_PASSWORD,
     CONF_PORT,
     CONF_REBOOT_TIMEOUT,
@@ -27,8 +25,12 @@ from esphome.components.esp32 import add_idf_sdkconfig_option
 
 CONF_TIME = "time"
 
-DEPENDENCIES = ["network", "ota", "time", "mqtt"]
-AUTO_LOAD = ["json", "async_tcp"]
+DEPENDENCIES = ["network", "time", "mqtt"]
+
+def AUTO_LOAD():
+    if CORE.is_esp8266 or CORE.is_libretiny:
+        return ["async_tcp", "json"]
+    return ["json"]
 
 mylife_ns = cg.esphome_ns.namespace("mylife")
 MylifeClientComponent = mylife_ns.class_("MylifeClientComponent", cg.Component)
@@ -37,7 +39,6 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(MylifeClientComponent),
-            cv.GenerateID(CONF_OTA): cv.use_id(OTAComponent),
             cv.GenerateID(CONF_TIME): cv.use_id(RealTimeClock),
             cv.Required(CONF_BROKER): cv.string_strict,
             cv.Optional(CONF_PORT, default=1883): cv.port,
@@ -54,10 +55,10 @@ CONFIG_SCHEMA = cv.All(
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
-    # Add required libraries for arduino
-    if CORE.using_arduino:
-        # https://github.com/OttoWinter/async-mqtt-client/blob/master/library.json
-        cg.add_library("ottowinter/AsyncMqttClient-esphome", "0.8.6")
+    # Add required libraries for ESP8266 and LibreTiny
+    if CORE.is_esp8266 or CORE.is_libretiny:
+        # https://github.com/heman/async-mqtt-client/blob/master/library.json
+        cg.add_library("heman/AsyncMqttClient-esphome", "2.0.0")
 
     cg.add_define("USE_MYLIFE")
 
@@ -81,8 +82,6 @@ async def to_code(config):
 
     rtc = await cg.get_variable(config[CONF_TIME])
     cg.add(var.set_rtc(rtc))
-    ota = await cg.get_variable(config[CONF_OTA])
-    cg.add(var.set_ota(ota))
 
     # esp-idf only
     if CONF_CERTIFICATE_AUTHORITY in config:

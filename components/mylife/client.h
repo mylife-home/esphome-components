@@ -10,11 +10,12 @@
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/ip_address.h"
 #include "esphome/components/time/real_time_clock.h"
-#include "esphome/components/ota/ota_component.h"
-#if defined(USE_ESP_IDF)
-#include "esphome/components/mqtt/mqtt_backend_idf.h"
-#elif defined(USE_ARDUINO)
-#include "esphome/components/mqtt/mqtt_backend_arduino.h"
+#if defined(USE_ESP32)
+#include "esphome/components/mqtt/mqtt_backend_esp32.h"
+#elif defined(USE_ESP8266)
+#include "esphome/components/mqtt/mqtt_backend_esp8266.h"
+#elif defined(USE_LIBRETINY)
+#include "esphome/components/mqtt/mqtt_backend_libretiny.h"
 #endif
 #include "lwip/ip_addr.h"
 #include <vector>
@@ -156,7 +157,6 @@ class MylifeClientComponent : public Component {
   void set_client_id(const std::string &client_id) { this->credentials_.client_id = client_id; }
 
   void set_rtc(time::RealTimeClock *rtc);
-  void set_ota(ota::OTAComponent *ota);
 
   std::string build_topic(const std::string &suffix) const;
   std::string build_topic(std::initializer_list<std::string> suffix) const;
@@ -187,12 +187,13 @@ class MylifeClientComponent : public Component {
 
   std::vector<Subscription> subscriptions_;
   std::unique_ptr<Cleaner> cleaner_;
-#if defined(USE_ESP_IDF)
-  mqtt::MQTTBackendIDF mqtt_backend_;
-#elif defined(USE_ARDUINO)
-  mqtt::MQTTBackendArduino mqtt_backend_;
+#if defined(USE_ESP32)
+  mqtt::MQTTBackendESP32 mqtt_backend_;
+#elif defined(USE_ESP8266)
+  mqtt::MQTTBackendESP8266 mqtt_backend_;
+#elif defined(USE_LIBRETINY)
+  mqtt::MQTTBackendLibreTiny mqtt_backend_;
 #endif
-
   MQTTClientState state_{MQTT_CLIENT_DISCONNECTED};
   network::IPAddress ip_;
   bool dns_resolved_{false};

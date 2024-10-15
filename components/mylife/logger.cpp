@@ -4,6 +4,7 @@
 
 #include "client.h"
 #include "esphome/core/application.h"
+#include "esphome/core/time.h"
 #ifdef USE_LOGGER
 #include "esphome/components/logger/logger.h"
 #endif
@@ -170,7 +171,7 @@ std::string Logger::to_time(const Timestamp &timestamp) {
   }
 
   // 2023-01-30T11:14:35+0100
-  return time::ESPTime::from_epoch_local(time).strftime("%FT%T%z");
+  return ESPTime::from_epoch_local(time).strftime("%FT%T%z");
 }
 
 int Logger::to_level(int level) {

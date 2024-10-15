@@ -1,5 +1,5 @@
 #pragma once
-
+#include "esphome/core/defines.h"
 #include <string>
 #include <map>
 #include "esphome/components/network/ip_address.h"

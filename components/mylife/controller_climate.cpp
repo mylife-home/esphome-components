@@ -78,7 +78,7 @@ MylifeClimate::MylifeClimate(MylifeClientComponent *client, climate::Climate *ta
     this->on_set_fan_mode(enum_to_fan_mode(Encoding::read_string(buffer)));
   });
 
-  climate_->add_on_state_callback([this]() {
+  climate_->add_on_state_callback([this](climate::Climate &) {
     this->on_climate_change();
   });
 }
