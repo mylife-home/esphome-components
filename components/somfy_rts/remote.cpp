@@ -46,10 +46,18 @@ void SomfyRtsRemote::send_command(Command command) {
 
   ESP_LOGD(TAG, "Sending command %02X with rolling code %04X", command, rolling_code);
 
-  // TODO (repeat)
+  Frame frame(command, rolling_code, this->address_);
+
+  // Encode the frame for sending
+  uint8_t data[Frame::size];
+  frame.to_bytes(data);
+
+  for (uint32_t i = 0; i < this->repeat_; i++) {
+    this->send_frame(data, i > 0);
+  }
 }
 
-void SomfyRtsRemote::send_frame(const Frame &frame, bool repeated) {
+void SomfyRtsRemote::send_frame(const uint8_t *data, bool repeated) {
     // Width of the high part of a "wakeup pulse", in microseconds
     constexpr uint32_t wakeup_high = 10568;
     // Width of the low part of a "wakeup pulse", in microseconds
@@ -69,11 +77,6 @@ void SomfyRtsRemote::send_frame(const Frame &frame, bool repeated) {
 
     constexpr uint8_t initial_preamble_count = 2;
     constexpr uint8_t repeat_preamble_count = 7;
-
-
-  // Encode the frame for sending
-  uint8_t data[Frame::size];
-  frame.to_bytes(data);
 
   if (!repeated) {
       // Send the wakeup pulses

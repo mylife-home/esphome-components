@@ -18,7 +18,7 @@ public:
 
 private:
   void send_command(Command command);
-  void send_frame(const Frame &frame, bool repeated);
+  void send_frame(const uint8_t *data, bool repeated);
   void send_pulse(bool state, uint32_t micros);
   uint16_t next_rolling_code();
 
