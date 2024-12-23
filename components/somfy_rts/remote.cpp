@@ -44,7 +44,7 @@ void SomfyRtsRemote::dump_config() {
 void SomfyRtsRemote::send_command(Command command) {
   uint16_t rolling_code = this->next_rolling_code();
 
-  ESP_LOGD(TAG, "Sending command %02X with rolling code %04X", command, rolling_code);
+  ESP_LOGD(TAG, "Sending command %s (%02X) with rolling code %04X", command_to_string(command), command, rolling_code);
 
   Frame frame(command, rolling_code, this->address_);
 

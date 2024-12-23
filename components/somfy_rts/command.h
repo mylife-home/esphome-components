@@ -18,5 +18,7 @@ enum class Command : uint8_t {
   FLAG       = 0xA, ///< Flag button pressed (Soliris)
 };
 
+const char *command_to_string(Command command);
+
 }  // namespace somfy_rts
 }  // namespace esphome
