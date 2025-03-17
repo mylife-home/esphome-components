@@ -18,6 +18,9 @@ from esphome.const import (
     CONF_REBOOT_TIMEOUT,
     CONF_SSL_FINGERPRINTS,
     CONF_USERNAME,
+    PLATFORM_BK72XX,
+    PLATFORM_ESP32,
+    PLATFORM_ESP8266,
 )
 
 from esphome.core import coroutine_with_priority, CORE
@@ -49,6 +52,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_REBOOT_TIMEOUT, default="15min"): cv.positive_time_period_milliseconds,
         }
     ),
+    cv.only_on([PLATFORM_ESP32, PLATFORM_ESP8266, PLATFORM_BK72XX]),
 )
 
 @coroutine_with_priority(40.0)
