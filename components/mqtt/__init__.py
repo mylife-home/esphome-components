@@ -146,6 +146,7 @@ async def to_code(config):
             cg.add(var.set_log_level(logger.LOG_LEVELS[log_topic[CONF_LEVEL]]))
 
 # Re-export MQTT* stuff as normal stuff
+MQTTAlarmControlPanelComponent = MQTTComponentStub
 MQTTBinarySensorComponent = MQTTComponentStub
 MQTTClimateComponent = MQTTComponentStub
 MQTTCoverComponent = MQTTComponentStub
@@ -155,9 +156,16 @@ MQTTSensorComponent = MQTTComponentStub
 MQTTSwitchComponent = MQTTComponentStub
 MQTTTextSensor = MQTTComponentStub
 MQTTNumberComponent = MQTTComponentStub
+MQTTDateComponent = MQTTComponentStub
+MQTTTimeComponent = MQTTComponentStub
+MQTTDateTimeComponent = MQTTComponentStub
+MQTTTextComponent = MQTTComponentStub
 MQTTSelectComponent = MQTTComponentStub
 MQTTButtonComponent = MQTTComponentStub
 MQTTLockComponent = MQTTComponentStub
+MQTTEventComponent = MQTTComponentStub
+MQTTUpdateComponent = MQTTComponentStub
+MQTTValveComponent = MQTTComponentStub
 
 async def register_mqtt_component(var, config):
     pass
