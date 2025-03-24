@@ -24,6 +24,10 @@
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "controller_text_sensor.h"
 #endif
+#ifdef USE_TEXT
+#include "esphome/components/text/text.h"
+#include "controller_text.h"
+#endif
 #ifdef USE_FAN
 #include "esphome/components/fan/fan_state.h"
 #endif
@@ -73,6 +77,12 @@ static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent
 #ifdef USE_TEXT_SENSOR
 static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, text_sensor::TextSensor *component) {
   return make_unique<MylifeTextSensor>(client, component);
+}
+#endif
+
+#ifdef USE_TEXT
+static std::unique_ptr<MylifeController> create_controller(MylifeClientComponent *client, text::Text *component) {
+  return make_unique<MylifeText>(client, component);
 }
 #endif
 
@@ -158,6 +168,10 @@ std::vector<std::unique_ptr<MylifeController>> MylifeControllerFactory::build(My
 
 #ifdef USE_TEXT_SENSOR
   process_list(list, client, App.get_text_sensors());
+#endif
+
+#ifdef USE_TEXT
+  process_list(list, client, App.get_texts());
 #endif
 
 #ifdef USE_FAN
