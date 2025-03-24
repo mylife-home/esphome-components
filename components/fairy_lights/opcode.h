@@ -63,11 +63,11 @@ public:
     return this->arg8_.arg;
   }
 
-  int32_t arg24() const {
-    return static_cast<int32_t>(this->arg24_.arg);
-  }
+  int32_t arg24() const;
 
 private:
+  
+
   union {
     uint32_t raw_;
 

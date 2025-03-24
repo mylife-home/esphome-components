@@ -1,7 +1,24 @@
+#include <cstring>
+
 #include "opcode.h"
 
 namespace esphome {
 namespace fairy_lights {
+
+int32_t OpCode::arg24() const {
+  union {
+    struct {
+      uint32_t value24: 24;
+      uint32_t padding: 8;
+    };
+    int32_t value;
+  } trans;
+
+  trans.value24 = this->arg24_.arg;
+  trans.padding = 0;
+  return (trans.value << 8) >> 8;
+}
+
 
 std::ostream& operator<< (std::ostream& stream, const OpCode& op) {
   switch (op.type()) {
@@ -95,6 +112,8 @@ std::ostream& operator<< (std::ostream& stream, const OpCode& op) {
       stream << "Sleep";
       break;
   }
+
+  return stream;
 }
 
 }  // namespace fairy_lights

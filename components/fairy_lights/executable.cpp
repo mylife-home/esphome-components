@@ -132,7 +132,14 @@ std::unique_ptr<Executable> Executable::from_base64(const std::string &value) {
 }
 
 std::ostream& operator<< (std::ostream& stream, const Executable& executable) {
-  // TODO
+  stream << "StackSize=" << executable.stack_size() << "\n";
+  stream << "LocalsSize=" << executable.locals_size() << "\n";
+  stream << "\n";
+
+  for (const auto &op : executable.code()) {
+    stream << op << "\n";
+  }
+
   return stream;
 }
 
