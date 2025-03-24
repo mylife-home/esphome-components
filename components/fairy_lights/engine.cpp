@@ -2,6 +2,8 @@
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
 
+#include "executable.h"
+
 
 namespace esphome {
 namespace fairy_lights {
