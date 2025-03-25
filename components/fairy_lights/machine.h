@@ -4,6 +4,7 @@
 #include <vector>
 #include <ostream>
 #include <memory>
+#include <optional>
 
 #include "esphome/core/hal.h"
 
@@ -24,7 +25,7 @@ public:
   bool set_local(std::size_t index, int32_t value);
   bool push(int32_t value);
   bool pop(int32_t *value);
-  OpCode *fetch_instruction();
+  std::optional<OpCode> fetch_instruction();
   bool jump(int32_t relative_offset);
   void sleep(uint32_t duration);
   bool sleeping() const;

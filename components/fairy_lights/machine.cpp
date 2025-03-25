@@ -77,13 +77,13 @@ bool Machine::pop(int32_t *value) {
   return true;
 }
 
-OpCode *Machine::fetch_instruction() {
+std::optional<OpCode> Machine::fetch_instruction() {
   if (instruction_index_ >= instructions_.size()) {
     ESP_LOGE(TAG, "Invalid instruction index: %u", instruction_index_);
-    return nullptr;
+    return std::nullopt;
   }
 
-  return &instructions_[instruction_index_++];
+  return instructions_[instruction_index_++];
 }
 
 bool Machine::jump(int32_t relative_offset) {

@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <vector>
 #include <ostream>
+#include <optional>
 
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
@@ -92,14 +93,14 @@ class Crc32 {
   
   const std::array<uint32_t, 256> Crc32::TABLE = crc32_table();
 
-std::unique_ptr<Executable> Executable::from_base64(const std::string &value) {
+std::optional<Executable> Executable::from_base64(const std::string &value) {
   constexpr uint32_t MAGIC = 0x00BABE00;
 
   auto data = base64_decode(value);
 
   if (data.size() < 32 || data.size() % 4 != 0) {
     ESP_LOGE(TAG, "Wrong executable size %u", data.size());
-    return nullptr;
+    return std::nullopt;
   }
 
   auto reader = BufferReader(data);
@@ -107,7 +108,7 @@ std::unique_ptr<Executable> Executable::from_base64(const std::string &value) {
   auto magic = reader.read<uint32_t>();
   if (magic != MAGIC) {
     ESP_LOGE(TAG, "Wrong magic %08X (expected %08X)", magic, MAGIC);
-    return nullptr;
+    return std::nullopt;
   }
 
   auto crc = reader.read<uint32_t>();
@@ -116,7 +117,7 @@ std::unique_ptr<Executable> Executable::from_base64(const std::string &value) {
   auto expected_crc = computer.finalize();
   if (crc != expected_crc) {
     ESP_LOGE(TAG, "Invalid CRC %08X (expected %08X)", crc, expected_crc);
-    return nullptr;
+    return std::nullopt;
   }
 
   auto stack_size = reader.read<uint32_t>();
@@ -128,7 +129,7 @@ std::unique_ptr<Executable> Executable::from_base64(const std::string &value) {
     code.push_back(op);
   }
 
-  return std::make_unique<Executable>(stack_size, locals_size, code);
+  return Executable(stack_size, locals_size, code);
 }
 
 std::ostream& operator<< (std::ostream& stream, const Executable& executable) {

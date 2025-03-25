@@ -4,6 +4,7 @@
 #include <vector>
 #include <ostream>
 #include <memory>
+#include <optional>
 
 #include "opcode.h"
 
@@ -16,7 +17,7 @@ public:
     : stack_size_(stack_size), locals_size_(locals_size), code_(std::move(code)) {
   }
 
-  static std::unique_ptr<Executable> from_base64(const std::string &value);
+  static std::optional<Executable> from_base64(const std::string &value);
 
   size_t stack_size() const {
     return this->stack_size_;

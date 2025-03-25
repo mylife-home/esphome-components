@@ -270,9 +270,12 @@ private:
       return false;
     }
 
-    if (!machine.external_api().get(static_cast<std::size_t>(index), &red, &green, &blue)) {
+    if (index >= machine.external_api().len()) {
+      ESP_LOGE(TAG, "Runtime error: Index out of bounds (get_color)");
       return false;
     }
+
+    machine.external_api().get(static_cast<std::size_t>(index), &red, &green, &blue);
 
     if (pred) {
       *pred = static_cast<int32_t>(red);
@@ -329,12 +332,19 @@ private:
         return false;
     }
 
-    return machine.external_api().set(
+    if (index >= machine.external_api().len()) {
+      ESP_LOGE(TAG, "Runtime error: Index out of bounds (set)");
+      return false;
+    }
+
+    machine.external_api().set(
       static_cast<std::size_t>(index),
       static_cast<uint8_t>(red),
       static_cast<uint8_t>(green),
       static_cast<uint8_t>(blue)
     );
+
+    return true;
   }
 
   bool sleep() {
