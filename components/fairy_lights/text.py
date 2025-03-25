@@ -20,4 +20,4 @@ async def to_code(config):
     await text.register_text(var, config)
 
     light = await cg.get_variable(config[CONF_LIGHT_ID])
-    cg.add(var.set_light(var, light))
+    cg.add(var.set_light(light))

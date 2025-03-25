@@ -39,8 +39,9 @@ FairyLightsEngine::FairyLightsEngine()
 FairyLightsEngine::~FairyLightsEngine() {
 }
 
-void FairyLightsEngine::set_light(light::AddressableLight *light) {
-  this->api_ = std::make_shared<Api>(light->all());
+void FairyLightsEngine::set_light(light::AddressableLightState *light) {
+  auto light_output = static_cast<light::AddressableLight*>(light->get_output());
+  this->api_ = std::make_shared<Api>(light_output->all());
 }
 
 

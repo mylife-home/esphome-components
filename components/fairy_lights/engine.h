@@ -16,7 +16,7 @@ public:
   explicit FairyLightsEngine();
   virtual ~FairyLightsEngine();
 
-  void set_light(light::AddressableLight *light);
+  void set_light(light::AddressableLightState *light);
 
   void loop() override;
 
