@@ -1,4 +1,4 @@
-#include "controller_text_sensor.h"
+#include "controller_text.h"
 
 #ifdef USE_MYLIFE
 #ifdef USE_TEXT
