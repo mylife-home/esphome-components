@@ -35,9 +35,10 @@ std::unique_ptr<Machine> Machine::load_executable(Executable exec, std::shared_p
 }
 
 bool Machine::get_local(std::size_t index, int32_t *value) const {
-  if (index >= locals_.size())
-    ESP_LOGE(TAG, "Invalid local index: %u", index);
+  if (index >= locals_.size()) {
+    ESP_LOGE(TAG, "Invalid local index: %zu", index);
     return false;
+  }
 
   *value = locals_[index];
   return true;
@@ -45,7 +46,7 @@ bool Machine::get_local(std::size_t index, int32_t *value) const {
 
 bool Machine::set_local(std::size_t index, int32_t value) {
   if (index >= locals_.size()) {
-    ESP_LOGE(TAG, "Invalid local index: %u", index);
+    ESP_LOGE(TAG, "Invalid local index: %zu", index);
     return false;
   }
 
@@ -79,7 +80,7 @@ bool Machine::pop(int32_t *value) {
 
 std::optional<OpCode> Machine::fetch_instruction() {
   if (instruction_index_ >= instructions_.size()) {
-    ESP_LOGE(TAG, "Invalid instruction index: %u", instruction_index_);
+    ESP_LOGE(TAG, "Invalid instruction index: %zu", instruction_index_);
     return std::nullopt;
   }
 
