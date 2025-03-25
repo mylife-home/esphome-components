@@ -10,7 +10,7 @@ FairyLightsEngine = fairy_lights_ns.class_("FairyLightsEngine", cg.Component, te
 CONFIG_SCHEMA = text.TEXT_SCHEMA.extend(
     {
         cv.Required(CONF_ID): cv.declare_id(FairyLightsEngine),
-        # cv.GenerateID(CONF_LIGHT_ID): cv.use_id(light.AddressableLightState),
+        cv.GenerateID(CONF_LIGHT_ID): cv.use_id(light.AddressableLightState),
     }
 )
 
@@ -19,5 +19,5 @@ async def to_code(config):
     await cg.register_component(var, config)
     await text.register_text(var, config)
 
-    # light = await cg.get_variable(config[CONF_LIGHT_ID])
-    # cg.add(var.set_light(var, light))
+    light = await cg.get_variable(config[CONF_LIGHT_ID])
+    cg.add(var.set_light(var, light))
