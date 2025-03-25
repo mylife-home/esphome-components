@@ -19,5 +19,8 @@ async def to_code(config):
     await cg.register_component(var, config)
     await text.register_text(var, config)
 
+    # components/text/__init__.py set it to 255 by default
+    cg.add(var.traits.set_max_length(4096))
+
     light = await cg.get_variable(config[CONF_LIGHT_ID])
     cg.add(var.set_light(light))
