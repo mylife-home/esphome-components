@@ -5,13 +5,14 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/component.h"
 #include "esphome/core/preferences.h"
+#include "esphome/components/remote_base/remote_base.h"
 
 namespace esphome {
 namespace somfy_rts {
 
-class SomfyRtsRemote : public Component {
+class SomfyRtsRemote : public Component, public remote_base::RemoteTransmittable {
 public:
-  SomfyRtsRemote(GPIOPin *pin, uint32_t address, uint32_t repeat);
+  SomfyRtsRemote(uint32_t address, uint32_t repeat);
 
   void setup() override;
   void dump_config() override;
@@ -19,12 +20,10 @@ public:
   void send_command(Command command);
   
 private:
-  void send_frame(const uint8_t *data, bool repeated);
-  void send_pulse(bool state, uint32_t micros);
+  void send_frame(remote_base::RemoteTransmitData *tdata, const uint8_t *data, bool repeated);
   uint16_t next_rolling_code();
 
   uint32_t address_;
-  GPIOPin *pin_;
   ESPPreferenceObject store_;
   uint16_t rolling_code_;
   uint32_t repeat_;

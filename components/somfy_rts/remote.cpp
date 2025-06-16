@@ -9,18 +9,14 @@ static const char *const TAG = "somfy_rts";
 namespace esphome {
 namespace somfy_rts {
 
-SomfyRtsRemote::SomfyRtsRemote(GPIOPin *pin, uint32_t address, uint repeat)
+SomfyRtsRemote::SomfyRtsRemote(uint32_t address, uint repeat)
  : address_(address)
- , pin_(pin)
  , store_(nullptr)
  , rolling_code_(0)
  , repeat_(repeat) {
 }
 
 void SomfyRtsRemote::setup() {
-  this->pin_->setup();
-  this->pin_->pin_mode(gpio::FLAG_OUTPUT);
-
   // Random 32bit value; If this changes existing restore preferences are invalidated
   static const uint32_t RESTORE_STATE_VERSION = 0x4242BABEUL;
 
@@ -36,7 +32,6 @@ void SomfyRtsRemote::setup() {
 void SomfyRtsRemote::dump_config() {
   ESP_LOGCONFIG(TAG, "SomfyRtsRemote:");
   ESP_LOGCONFIG(TAG, "  Address: %06X", this->address_);
-  ESP_LOGCONFIG(TAG, "  Pin: %s", this->pin_->dump_summary().c_str());
   ESP_LOGCONFIG(TAG, "  Rolling code: %04X", this->rolling_code_);
   ESP_LOGCONFIG(TAG, "  Repeat: %" PRIu32, this->repeat_);
 }
@@ -52,12 +47,18 @@ void SomfyRtsRemote::send_command(Command command) {
   uint8_t data[Frame::size];
   frame.to_bytes(data);
 
+  auto transmit = this->transmitter_->transmit();
+  auto *tdata = transmit.get_data();
+  tdata->set_carrier_frequency(0);
+
   for (uint32_t i = 0; i < this->repeat_; i++) {
-    this->send_frame(data, i > 0);
+    this->send_frame(tdata, data, i > 0);
   }
+
+  transmit.perform();
 }
 
-void SomfyRtsRemote::send_frame(const uint8_t *data, bool repeated) {
+void SomfyRtsRemote::send_frame(remote_base::RemoteTransmitData *tdata, const uint8_t *data, bool repeated) {
     // Width of the high part of a "wakeup pulse", in microseconds
     constexpr uint32_t wakeup_high = 10568;
     // Width of the low part of a "wakeup pulse", in microseconds
@@ -80,8 +81,8 @@ void SomfyRtsRemote::send_frame(const uint8_t *data, bool repeated) {
 
   if (!repeated) {
       // Send the wakeup pulses
-      this->send_pulse(true, wakeup_high);
-      this->send_pulse(false, wakeup_low);
+      tdata->mark(wakeup_high);
+      tdata->space(wakeup_low);
   }
 
   // Decide how many preamble pulses to send
@@ -89,13 +90,13 @@ void SomfyRtsRemote::send_frame(const uint8_t *data, bool repeated) {
 
   // Send the preamble pulses
   for (uint8_t i = 0; i < preamble_count; i++) {
-      this->send_pulse(true, preamble_high);
-      this->send_pulse(false, preamble_low);
+      tdata->mark(preamble_high);
+      tdata->space(preamble_low);
   }
 
   // Send software sync pulses
-  this->send_pulse(true, sync_high);
-  this->send_pulse(false, sync_low);
+  tdata->mark(sync_high);
+  tdata->space(sync_low);
 
   // Send the data
   for (int i = 0; i < Frame::size; i++) {
@@ -106,22 +107,17 @@ void SomfyRtsRemote::send_frame(const uint8_t *data, bool repeated) {
 
           // Send the bit using manchester encoded pulses
           if (bit == 1) {
-              this->send_pulse(false, symbol);
-              this->send_pulse(true, symbol);
+              tdata->space(symbol);
+              tdata->mark(symbol);
           } else {
-              this->send_pulse(true, symbol);
-              this->send_pulse(false, symbol);
+              tdata->mark(symbol);
+              tdata->space(symbol);
           }
       }
   }
 
   // Send the inter-frame sleep pulse
-  this->send_pulse(false, frame_sleep);
-}
-
-void SomfyRtsRemote::send_pulse(bool state, uint32_t micros) {
-  this->pin_->digital_write(state);
-  delayMicroseconds(micros);
+  tdata->space(frame_sleep);
 }
 
 uint16_t SomfyRtsRemote::next_rolling_code() {
@@ -129,7 +125,6 @@ uint16_t SomfyRtsRemote::next_rolling_code() {
   this->store_.save(&this->rolling_code_);
   return this->rolling_code_;
 }
-
 
 }  // namespace somfy_rts
 }  // namespace esphome
