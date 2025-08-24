@@ -93,7 +93,7 @@ void Metadata::publish_instance_info() {
     root["type"] = "core";
     root["hostname"] = App.get_name();
 
-    JsonObject hardware = root.createNestedObject("hardware");
+    JsonObject hardware = root["hardware"].to<JsonObject>();
 #if defined(ESPHOME_VARIANT) // Only keep this one when released
     hardware["main"] = ESPHOME_VARIANT;
 #elif defined(USE_ESP32)
@@ -105,14 +105,14 @@ void Metadata::publish_instance_info() {
 #endif
     hardware["board"] = ESPHOME_BOARD;
 
-    JsonArray capabilities = root.createNestedArray("capabilities");
+    JsonArray capabilities = root["capabilities"].to<JsonArray>();
     capabilities.add("components-manager");
     capabilities.add("restart-api");
 
 #ifdef USE_WIFI
     capabilities.add("wifi-client");
 
-    JsonObject wifi = root.createNestedObject("wifi");
+    JsonObject wifi = root["wifi"].to<JsonObject>();
     wifi["rssi"] = wifi::global_wifi_component->wifi_rssi();
 #endif
 
@@ -120,7 +120,7 @@ void Metadata::publish_instance_info() {
     root["systemUptime"] = uptime;
     root["instanceUptime"] = uptime;
 
-    JsonObject versions = root.createNestedObject("versions");
+    JsonObject versions = root["versions"].to<JsonObject>();
     versions["esphome"] = ESPHOME_VERSION;
     versions["mylife"] = MYLIFE_VERSION;
     versions["build"] = App.get_compilation_time();

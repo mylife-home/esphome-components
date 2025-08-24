@@ -29,11 +29,11 @@ OemSensor = oem_ns.class_("OemSensor", sensor.Sensor, cg.Component)
 CONFIG_SCHEMA = (
   sensor.sensor_schema(
     OemSensor,
-    # will be set inteenrally depending of the type of sensor
-    unit_of_measurement=sensor._UNDEF,
-    accuracy_decimals=sensor._UNDEF,
-    device_class=sensor._UNDEF,
-    state_class=sensor._UNDEF,
+    # will be set internally depending of the type of sensor
+    unit_of_measurement=cv.UNDEFINED,
+    accuracy_decimals=cv.UNDEFINED,
+    device_class=cv.UNDEFINED,
+    state_class=cv.UNDEFINED,
   )
   .extend({
     cv.Required(CONF_COMPUTER): cv.use_id(OemComputer),

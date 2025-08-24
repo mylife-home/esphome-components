@@ -7,7 +7,7 @@ from . import CONF_LIGHT_ID, fairy_lights_ns
 
 FairyLightsEngine = fairy_lights_ns.class_("FairyLightsEngine", cg.Component, text.Text)
 
-CONFIG_SCHEMA = text.TEXT_SCHEMA.extend(
+CONFIG_SCHEMA = text.text_schema().extend(
     {
         cv.Required(CONF_ID): cv.declare_id(FairyLightsEngine),
         cv.GenerateID(CONF_LIGHT_ID): cv.use_id(light.AddressableLightState),

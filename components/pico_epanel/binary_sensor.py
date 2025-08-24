@@ -6,7 +6,7 @@ from . import PicoEpanelController, CONF_CONTROLLER_ID
 
 DEPENDENCIES = ["pico_epanel"]
 
-CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend(
+CONFIG_SCHEMA = binary_sensor.binary_sensor_schema().extend(
     {
         cv.GenerateID(CONF_CONTROLLER_ID): cv.use_id(PicoEpanelController),
         cv.Required(CONF_INDEX): cv.int_range(min=0, max=15),

@@ -108,7 +108,7 @@ void Rpc::serve(const std::string &address, std::unique_ptr<RpcService> service)
 
     auto reply_payload = json::build_json([call_ptr](JsonObject root) {
       // Note: cannot report error
-      auto output = root.createNestedObject("output");
+      auto output = root["output"].to<JsonObject>();
       call_ptr->build_output(output);
     });
 
@@ -121,7 +121,7 @@ void Rpc::reply_error(const std::string &reply_topic, const std::string &message
 
   auto reply_payload = json::build_json([message, stacktrace](JsonObject root) {
     // Note: cannot report error
-    auto error = root.createNestedObject("error");
+    auto error = root["error"].to<JsonObject>();
     error["message"] = message;
     error["stacktrace"] = stacktrace;
   });

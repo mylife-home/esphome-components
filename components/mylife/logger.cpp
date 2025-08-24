@@ -40,13 +40,13 @@ struct LogItem {
 
 class LogBuffer {
 public:
-  void add(Timestamp &&timestamp, int level, const char *tag, const char *message) {
+  void add(Timestamp &&timestamp, int level, const char *tag, const char *message, size_t message_len) {
     auto item = make_unique<LogItem>();
 
     item->timestamp = std::move(timestamp);
     item->level = level;
     item->tag = tag;
-    item->message = message;
+    item->message = std::string(message, message_len);
 
     item->allocated_size = sizeof(LogItem) + item->tag.size() + item->message.size(); // Not very accurate but at last give some info
 
@@ -89,11 +89,11 @@ Logger::Logger(MylifeClientComponent *client)
 
 #ifdef USE_LOGGER
   if (logger::global_logger != nullptr) {
-    logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
+    logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message, size_t message_len) {
       auto ts = this->now();
 
       if (!this->buffer_->empty() || !this->client_->is_connected() || !this->rtc_synced_ || !this->write(ts, level, tag, message)) {
-        this->buffer_->add(std::move(ts), level, tag, message);
+        this->buffer_->add(std::move(ts), level, tag, message, message_len);
       }
     });
   }

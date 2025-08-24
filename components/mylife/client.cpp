@@ -126,13 +126,13 @@ void MylifeClientComponent::setup() {
   auto stub_config = mqtt::global_mqtt_client;
 
   if (stub_config && stub_config->is_log_message_enabled() && logger::global_logger != nullptr) {
-    logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message) {
+    logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message, size_t message_len) {
       auto stub_config = mqtt::global_mqtt_client;
 
       if (level <= stub_config->get_log_level() && this->can_send()) {
         const auto &log_message = stub_config->get_log_message();
         this->publish({.topic = log_message.topic,
-                       .payload = message,
+                       .payload = std::string(message, message_len),
                        .qos = log_message.qos,
                        .retain = log_message.retain});
       }
@@ -171,13 +171,17 @@ void MylifeClientComponent::start_dnslookup_() {
   this->dns_resolve_error_ = false;
   this->dns_resolved_ = false;
   ip_addr_t addr;
+  err_t err;
+  {
+    LwIPLock lock;
 #if USE_NETWORK_IPV6
-  err_t err = dns_gethostbyname_addrtype(this->credentials_.address.c_str(), &addr,
-                                         MylifeClientComponent::dns_found_callback, this, LWIP_DNS_ADDRTYPE_IPV6_IPV4);
+    err = dns_gethostbyname_addrtype(this->credentials_.address.c_str(), &addr,
+                                     MylifeClientComponent::dns_found_callback, this, LWIP_DNS_ADDRTYPE_IPV6_IPV4);
 #else
-  err_t err = dns_gethostbyname_addrtype(this->credentials_.address.c_str(), &addr,
-                                         MylifeClientComponent::dns_found_callback, this, LWIP_DNS_ADDRTYPE_IPV4);
+    err = dns_gethostbyname_addrtype(this->credentials_.address.c_str(), &addr,
+                                     MylifeClientComponent::dns_found_callback, this, LWIP_DNS_ADDRTYPE_IPV4);
 #endif /* USE_NETWORK_IPV6 */
+  }
   switch (err) {
     case ERR_OK: {
       // Got IP immediately
