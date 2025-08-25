@@ -23,9 +23,7 @@ Machine::Machine(std::vector<int32_t> locals, std::vector<int32_t> stack, std::v
   , wakeup_time_(millis()) {
 }
 
-std::unique_ptr<Machine> Machine::load_executable(Executable exec, std::shared_ptr<Api> api) {
-  std::vector<int32_t> locals(exec.locals_size(), 0);
-
+std::unique_ptr<Machine> Machine::load_executable(const Executable &exec, std::shared_ptr<Api> api) {
   return std::make_unique<Machine>(
     std::vector<int32_t>(exec.locals_size()),
     std::vector<int32_t>(exec.stack_size()),

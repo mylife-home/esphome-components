@@ -32,61 +32,72 @@ private:
   std::size_t count{0};
 };
 
-FairyLightsEngine::FairyLightsEngine()
- : machine_(nullptr) {
+FairyLightsEngine::FairyLightsEngine(const std::string &name)
+ : light::AddressableLightEffect(name) {
 }
 
 FairyLightsEngine::~FairyLightsEngine() {
 }
 
-void FairyLightsEngine::set_light(light::AddressableLightState *light) {
-  auto light_output = static_cast<light::AddressableLight*>(light->get_output());
-  this->api_ = std::make_shared<Api>(light_output->all());
+void FairyLightsEngine::set_text(FairyLightsText *text) {
+  text->add_on_state_callback([this, text](std::string) {
+    this->exec_ = text->get_executable();
+    this->error_ = false;
+    this->machine_ = nullptr;
+  });
 }
 
+void FairyLightsEngine::start() {
+}
 
-void FairyLightsEngine::loop() {
+void FairyLightsEngine::stop() {
+  this->reset();
+}
+
+void FairyLightsEngine::apply(light::AddressableLight &it, const Color &current_color) {
+  if (!this->api_) {
+    this->light_ = &it;
+    this->api_ = std::make_shared<Api>(it.all());
+  }
+  
+  // Check if we should start the machine
+  if (!this->machine_ && this->exec_ && !this->error_) {
+    this->machine_ = Machine::load_executable(*this->exec_, this->api_);
+    ESP_LOGD(TAG, "Start VM");
+  }
+
   if (!this->machine_) {
     return;
   }
 
   if (!tick()) {
+    this->reset();
     ESP_LOGE(TAG, "Program error, stopping.");
-    this->status_set_error("Program error");
-
-    this->machine_ = nullptr;
+    this->error_ = true;
   }
 }
 
-void FairyLightsEngine::control(const std::string &value) {
-  this->publish_state(value);
-
+void FairyLightsEngine::reset() {
   this->machine_ = nullptr;
-  this->status_clear_error();
+  this->error_ = false;
 
-  auto exec = Executable::from_base64(value);
-  if (!exec) {
-    ESP_LOGE(TAG, "Failed to load program");
-    this->status_set_error("Failed to load program");
-    return;
+  if (this->light_) {
+    for (auto led : this->light_->all()) {
+      led.set(Color::BLACK);
+    }
   }
 
-  std::stringstream ss;
-  std::string line;
-  ss << *exec;
-
-  ESP_LOGD(TAG, "Program:");
-  while(std::getline(ss, line, '\n')){
-    ESP_LOGD(TAG, "  %s", line.c_str());
-  }
-
-  this->machine_ = Machine::load_executable(*exec, this->api_);
+  ESP_LOGD(TAG, "Reset");
 }
 
 bool FairyLightsEngine::tick() {
   auto &machine = *this->machine_;
+  
+  if (machine.sleeping()) {
+    return true;
+  }
+  
   LoopGuard guard;
-
   while (true) {
     if (machine.sleeping()) {
       break;
@@ -110,6 +121,9 @@ bool FairyLightsEngine::tick() {
       return false;
     }
   }
+
+  // Hopefully light states have changed
+  this->light_->schedule_show();
 
   return true;
 }

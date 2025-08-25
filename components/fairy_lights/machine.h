@@ -19,7 +19,7 @@ class Machine {
 public:
   explicit Machine(std::vector<int32_t> locals, std::vector<int32_t> stack, std::vector<OpCode> instructions, std::shared_ptr<Api> api);
 
-  static std::unique_ptr<Machine> load_executable(Executable exec, std::shared_ptr<Api> api);
+  static std::unique_ptr<Machine> load_executable(const Executable &exec, std::shared_ptr<Api> api);
 
   bool get_local(std::size_t index, int32_t *value) const;
   bool set_local(std::size_t index, int32_t value);
