@@ -51,6 +51,9 @@ void FairyLightsEngine::start() {
 }
 
 void FairyLightsEngine::stop() {
+  this->machine_ = nullptr;
+  this->error_ = false;
+
   this->reset();
 }
 
@@ -67,27 +70,26 @@ void FairyLightsEngine::apply(light::AddressableLight &it, const Color &current_
   }
 
   if (!this->machine_) {
+    this->reset();
     return;
   }
 
   if (!tick()) {
-    this->reset();
     ESP_LOGE(TAG, "Program error, stopping.");
+
+    this->machine_ = nullptr;
     this->error_ = true;
   }
 }
 
 void FairyLightsEngine::reset() {
-  this->machine_ = nullptr;
-  this->error_ = false;
-
   if (this->light_) {
     for (auto led : this->light_->all()) {
       led.set(Color::BLACK);
     }
-  }
 
-  ESP_LOGD(TAG, "Reset");
+    this->light_->schedule_show();
+  }
 }
 
 bool FairyLightsEngine::tick() {
