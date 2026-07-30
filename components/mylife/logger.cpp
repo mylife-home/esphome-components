@@ -86,14 +86,18 @@ private:
 Logger::Logger(MylifeClientComponent *client)
  : client_(client)
  , buffer_(make_unique<LogBuffer>()) {
-
+   
 #ifdef USE_LOGGER
   if (logger::global_logger != nullptr) {
-    logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message, size_t message_len) {
-      auto ts = this->now();
+    logger::global_logger->add_log_callback(this, [](void *self, uint8_t level, const char *tag, const char *message, size_t message_len) {
+      auto this_ = static_cast<Logger *>(self);
+      auto ts = this_->now();
 
-      if (!this->buffer_->empty() || !this->client_->is_connected() || !this->rtc_synced_ || !this->write(ts, level, tag, message)) {
-        this->buffer_->add(std::move(ts), level, tag, message, message_len);
+      this_->write(ts, level, tag, message);
+      return;
+
+      if (!this_->buffer_->empty() || !this_->client_->is_connected() || !this_->rtc_synced_ || !this_->write(ts, level, tag, message)) {
+        this_->buffer_->add(std::move(ts), level, tag, message, message_len);
       }
     });
   }
@@ -128,8 +132,8 @@ bool Logger::write(const Timestamp& timestamp, int level, const char *tag, const
 
   auto payload = json::build_json([&](JsonObject root) {
     root["name"] = tag;
-    root["instanceName"] = App.get_name();
-    root["hostname"] = App.get_name();
+    root["instanceName"] = App.get_name().str();
+    root["hostname"] = App.get_name().str();
     root["pid"] = 0;
     root["level"] = this->to_level(level);
     root["msg"] = this->to_message(message);
@@ -213,7 +217,7 @@ static std::string json_escape(const std::string &msg) {
   std::ostringstream o;
 
   for (auto ptr = msg.cbegin(); ptr != msg.cend(); ++ptr) {
-    if (*ptr == '"' || *ptr == '\\' || ('\x00' <= *ptr && *ptr <= '\x1f')) {
+    if (*ptr == '"' || *ptr == '\\' || (/*'\x00' <= *ptr &&*/ *ptr <= '\x1f')) {
       o << "\\u" << std::hex << std::setw(4) << std::setfill('0') << (int)*ptr;
     } else {
       o << *ptr;

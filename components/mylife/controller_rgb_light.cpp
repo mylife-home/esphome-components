@@ -55,13 +55,15 @@ MylifeRgbLight::MylifeRgbLight(MylifeClientComponent *client, light::LightState 
     this->on_set_color(Encoding::read_uint32(buffer));
   });
 
-  light_->add_new_remote_values_callback([this]() {
-    this->on_light_change();
-  });
+  light_->add_remote_values_listener(this);
 }
 
 const PluginDefinition *MylifeRgbLight::get_plugin_metadata() const {
   return &definition;
+}
+
+void MylifeRgbLight::on_light_remote_values_update() {
+  this->publish_states_(false);
 }
 
 void MylifeRgbLight::publish_states() {
@@ -88,10 +90,6 @@ void MylifeRgbLight::on_set_color(uint32_t value) {
   call.set_blue(color_utof(color_enc.blue));
 
   call.perform();
-}
-
-void MylifeRgbLight::on_light_change() {
-  this->publish_states_(false);
 }
 
 void MylifeRgbLight::publish_states_(bool force) {

@@ -36,6 +36,11 @@ static std::string state_class_to_str(sensor::StateClass class_) {
   }
 }
 
+static std::string device_class_str(const sensor::Sensor *sensor) {
+  char buf[MAX_DEVICE_CLASS_LENGTH];
+  return std::string(sensor->get_device_class_to(buf));
+}
+
 void EnergyPublisher::do_publish() {
   if (!client_->is_connected()) {
     return;
@@ -58,9 +63,9 @@ void EnergyPublisher::do_publish() {
     root["id"] = this->id_;
 
     // sensor metadata
-    root["device_class"] = this->sensor_->get_device_class();
+    root["device_class"] = device_class_str(this->sensor_);
     root["state_class"] = state_class_to_str(this->sensor_->get_state_class());
-    root["unit_of_measurement"] = this->sensor_->get_unit_of_measurement();
+    root["unit_of_measurement"] = this->sensor_->get_unit_of_measurement_ref().str();
     root["accuracy_decimals"] = this->sensor_->get_accuracy_decimals();
 
     root["value"] = value;

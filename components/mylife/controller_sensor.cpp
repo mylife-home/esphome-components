@@ -65,6 +65,11 @@ static std::string get_state_class(sensor::StateClass class_) {
   }
 }
 
+static std::string device_class_str(const sensor::Sensor *sensor) {
+  char buf[MAX_DEVICE_CLASS_LENGTH];
+  return std::string(sensor->get_device_class_to(buf));
+}
+
 void MylifeSensor::publish_states_(bool force) {
   auto value = this->sensor_->get_state();
 
@@ -74,9 +79,9 @@ void MylifeSensor::publish_states_(bool force) {
   }
 
   if (force) {
-    this->publish_state("unitOfMeasurement", Encoding::write_string(this->sensor_->get_unit_of_measurement()));
+    this->publish_state("unitOfMeasurement", Encoding::write_string(this->sensor_->get_unit_of_measurement_ref().str()));
     this->publish_state("accuracyDecimals", Encoding::write_int8(this->sensor_->get_accuracy_decimals()));
-    this->publish_state("deviceClass", Encoding::write_string(this->sensor_->get_device_class()));
+    this->publish_state("deviceClass", Encoding::write_string(device_class_str(this->sensor_)));
     this->publish_state("stateClass", Encoding::write_string(get_state_class(this->sensor_->get_state_class())));
   }
 }

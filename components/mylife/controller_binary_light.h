@@ -11,19 +11,19 @@
 namespace esphome {
 namespace mylife {
 
-class MylifeBinaryLight : public MylifeController {
+class MylifeBinaryLight : public MylifeController, public light::LightRemoteValuesListener {
 public:
   explicit MylifeBinaryLight(MylifeClientComponent *client, light::LightState *target);
   virtual ~MylifeBinaryLight() = default;
 
   virtual const PluginDefinition *get_plugin_metadata() const override;
+  virtual void on_light_remote_values_update() override;
 
 protected:
   virtual void publish_states() override;
 
 private:
   void on_set_active(bool value);
-  void on_light_change();
 
   void publish_states_(bool force);
 

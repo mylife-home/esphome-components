@@ -15,7 +15,7 @@ class Executable;
 
 class FairyLightsEngine : public light::AddressableLightEffect {
 public:
-  explicit FairyLightsEngine(const std::string &name);
+  explicit FairyLightsEngine(const char *name);
   virtual ~FairyLightsEngine();
 
   void set_text(FairyLightsText *text);

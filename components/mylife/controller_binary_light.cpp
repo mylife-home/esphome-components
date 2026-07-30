@@ -36,13 +36,15 @@ MylifeBinaryLight::MylifeBinaryLight(MylifeClientComponent *client, light::Light
     this->on_set_active(Encoding::read_bool(buffer));
   });
 
-  light_->add_new_remote_values_callback([this]() {
-    this->on_light_change();
-  });
+  light_->add_remote_values_listener(this);
 }
 
 const PluginDefinition *MylifeBinaryLight::get_plugin_metadata() const {
   return &definition;
+}
+
+void MylifeBinaryLight::on_light_remote_values_update() {
+  this->publish_states_(false);
 }
 
 void MylifeBinaryLight::publish_states() {
@@ -53,10 +55,6 @@ void MylifeBinaryLight::on_set_active(bool value) {
   auto call = this->light_->make_call();
   call.set_state(value);
   call.perform();
-}
-
-void MylifeBinaryLight::on_light_change() {
-  this->publish_states_(false);
 }
 
 void MylifeBinaryLight::publish_states_(bool force) {

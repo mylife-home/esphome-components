@@ -43,13 +43,15 @@ MylifeMonochromaticLight::MylifeMonochromaticLight(MylifeClientComponent *client
     this->on_set_brightness(Encoding::read_uint8(buffer));
   });
 
-  light_->add_new_remote_values_callback([this]() {
-    this->on_light_change();
-  });
+  light_->add_remote_values_listener(this);
 }
 
 const PluginDefinition *MylifeMonochromaticLight::get_plugin_metadata() const {
   return &definition;
+}
+
+void MylifeMonochromaticLight::on_light_remote_values_update() {
+  this->publish_states_(false);
 }
 
 void MylifeMonochromaticLight::publish_states() {
@@ -66,10 +68,6 @@ void MylifeMonochromaticLight::on_set_brightness(uint8_t value) {
   auto call = this->light_->make_call();
   call.set_brightness(color_utof(value));
   call.perform();
-}
-
-void MylifeMonochromaticLight::on_light_change() {
-  this->publish_states_(false);
 }
 
 void MylifeMonochromaticLight::publish_states_(bool force) {

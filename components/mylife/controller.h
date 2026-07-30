@@ -6,6 +6,7 @@
 
 #include "esphome/core/entity_base.h"
 #include <functional>
+#include <set>
 
 namespace esphome {
 namespace mylife {
@@ -28,11 +29,25 @@ protected:
 
   virtual void publish_states() = 0;
 
+  // Republish part of the Component API from MylifeClientComponent, the only component in the tree
+  void set_interval(uint32_t interval, std::function<void()> &&f);
+  void set_interval(const std::string &name, uint32_t interval, std::function<void()> &&f);
+  bool cancel_interval(const std::string &name);
+
+  void set_timeout(uint32_t timeout, std::function<void()> &&f);
+  void set_timeout(const std::string &name, uint32_t timeout, std::function<void()> &&f);
+  bool cancel_timeout(const std::string &name); 
+
+  void defer(const std::string &name, std::function<void()> &&f);
+  void defer(std::function<void()> &&f);
+  
 private:
   std::string build_member_topic(const std::string &member) const;
+  const char *make_name(const std::string &name);
 
   MylifeClientComponent *client_;
   std::string id_;
+  std::set<std::string> scheduler_names_; // no very elegant, but OK for the usage we have now
 };
 
 }  // namespace mylife

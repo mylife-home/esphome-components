@@ -91,7 +91,7 @@ void Metadata::publish_instance_info() {
 
   auto message = json::build_json([this](JsonObject root) {
     root["type"] = "core";
-    root["hostname"] = App.get_name();
+    root["hostname"] = App.get_name().str();
 
     JsonObject hardware = root["hardware"].to<JsonObject>();
 #if defined(ESPHOME_VARIANT) // Only keep this one when released
@@ -123,7 +123,7 @@ void Metadata::publish_instance_info() {
     JsonObject versions = root["versions"].to<JsonObject>();
     versions["esphome"] = ESPHOME_VERSION;
     versions["mylife"] = MYLIFE_VERSION;
-    versions["build"] = App.get_compilation_time();
+    versions["build"] = App.get_build_time();
 #ifdef ESPHOME_PROJECT_NAME
     versions["project"] = ESPHOME_PROJECT_NAME " " ESPHOME_PROJECT_VERSION;
 #endif

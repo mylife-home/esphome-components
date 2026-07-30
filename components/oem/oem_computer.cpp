@@ -24,14 +24,14 @@ void OemComputer::dump_config() {
   ESP_LOGCONFIG(TAG, "  Sample duration: %.2fs", this->sample_duration_ / 1e3f);
   ESP_LOGCONFIG(TAG, "  VREF zero point: %.2fV", this->zero_);
   ESP_LOGCONFIG(TAG, "  CT:");
-  ESP_LOGCONFIG(TAG, "    Burden resistor value: %dΩ", this->ct_config_.burden_resistor_value);
-  ESP_LOGCONFIG(TAG, "    CT turns: %d", this->ct_config_.ct_turns);
+  ESP_LOGCONFIG(TAG, "    Burden resistor value: %ldΩ", this->ct_config_.burden_resistor_value);
+  ESP_LOGCONFIG(TAG, "    CT turns: %ld", this->ct_config_.ct_turns);
   ESP_LOGCONFIG(TAG, "    Computer ratio: %.3f", this->ct_config_.ratio);
   ESP_LOGCONFIG(TAG, "    Max RMS current: %.1fA", this->zero_ / this->ct_config_.burden_resistor_value * this->ct_config_.ct_turns * 0.707);
   ESP_LOGCONFIG(TAG, "  V:");
   ESP_LOGCONFIG(TAG, "    Transfo sec: %.2fV", this->v_config_.transfo_sec);
-  ESP_LOGCONFIG(TAG, "    R1: %dΩ", this->v_config_.r1);
-  ESP_LOGCONFIG(TAG, "    R2: %dΩ", this->v_config_.r2);
+  ESP_LOGCONFIG(TAG, "    R1: %ldΩ", this->v_config_.r1);
+  ESP_LOGCONFIG(TAG, "    R2: %ldΩ", this->v_config_.r2);
   ESP_LOGCONFIG(TAG, "    Computer ratio: %.3f", this->v_config_.ratio);
   LOG_UPDATE_INTERVAL(this);
 }
@@ -61,7 +61,7 @@ void OemComputer::update() {
     constexpr float period_duration = 20.f; // 20 ms
     const float samples_per_period = this->sampling_data_.count * period_duration / this->sample_duration_;
 
-    ESP_LOGD(TAG, "'%s' - v_rms=%.1fV, i_rms=%.3fA, p_real=%.1fW (sample count: %d, sample per period: %.2f)",
+    ESP_LOGD(TAG, "'%s' - v_rms=%.1fV, i_rms=%.3fA, p_real=%.1fW (sample count: %ld, sample per period: %.2f)",
       this->id_.c_str(), v_rms, i_rms, p_real, this->sampling_data_.count, samples_per_period);
 
     this->update_callback_.call(OemComputerData{ .i_rms = i_rms, .v_rms = v_rms, .p_real = p_real });

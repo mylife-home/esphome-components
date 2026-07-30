@@ -116,7 +116,7 @@ void PicoEpanelController::loop() {
 
 void PicoEpanelController::dump_config() {
   ESP_LOGCONFIG(TAG, "[%s] PicoEpanelController:", id_.c_str());
-  ESP_LOGCONFIG(TAG, "  Interrupt pin: %s", this->intr_pin_->dump_summary().c_str());
+  log_pin_with_prefix(TAG, "  Interrupt pin:", this->intr_pin_);
   if (this->is_failed()) {
     ESP_LOGCONFIG(TAG, "  failed!");
   }

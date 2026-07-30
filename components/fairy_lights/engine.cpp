@@ -32,7 +32,7 @@ private:
   std::size_t count{0};
 };
 
-FairyLightsEngine::FairyLightsEngine(const std::string &name)
+FairyLightsEngine::FairyLightsEngine(const char *name)
  : light::AddressableLightEffect(name) {
 }
 

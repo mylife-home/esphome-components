@@ -8,38 +8,6 @@ namespace oem {
 
 static const char *const TAG = "oem_sensor";
 
-void OemSensor::set_type(SensorType type) {
-  this->type_ = type;
-
-  // configure sensor
-  this->set_state_class(sensor::StateClass::STATE_CLASS_MEASUREMENT);
-  switch(this->type_) {
-    case SensorType::CURRENT:
-      this->set_device_class("current");
-      this->set_unit_of_measurement("A");
-      this->set_accuracy_decimals(2);
-      break;
-
-    case SensorType::VOLTAGE:
-      this->set_device_class("voltage");
-      this->set_unit_of_measurement("V");
-      this->set_accuracy_decimals(0);
-      break;
-
-    case SensorType::APPARENT_POWER:
-      this->set_device_class("apparent_power");
-      this->set_unit_of_measurement("VA");
-      this->set_accuracy_decimals(0);
-      break;
-
-    case SensorType::REAL_POWER:
-      this->set_device_class("power");
-      this->set_unit_of_measurement("W");
-      this->set_accuracy_decimals(0);
-      break;
-  }
-}
-
 void OemSensor::setup() {
   // Setup the right callback
   switch(this->type_) {

@@ -11,18 +11,6 @@
 namespace esphome {
 namespace mylife {
 
-class ClimateCallDebounce : public Component {
-public:
-  explicit ClimateCallDebounce(climate::Climate *target);
-  virtual ~ClimateCallDebounce() = default;
-
-  void debounced_call(std::function<void(climate::ClimateCall &)> &&f);
-
-private:
-  std::optional<climate::ClimateCall> call_;
-  climate::Climate *climate_;
-};
-
 class MylifeClimate : public MylifeController {
 public:
   explicit MylifeClimate(MylifeClientComponent *client, climate::Climate *target);
@@ -37,6 +25,9 @@ private:
   void on_set_target_temperature(float value);
   void on_set_mode(climate::ClimateMode mode);
   void on_set_fan_mode(climate::ClimateFanMode fan_mode);
+
+  void debounced_call(std::function<void(climate::ClimateCall &)> &&f);
+
   void on_climate_change();
 
   void publish_states_(bool force);
@@ -45,7 +36,7 @@ private:
   climate::ClimateMode mode_;
   climate::ClimateFanMode fan_mode_;
   climate::Climate *climate_;
-  std::unique_ptr<ClimateCallDebounce> call_;
+  std::optional<climate::ClimateCall> call_;
 };
 
 }  // namespace mylife

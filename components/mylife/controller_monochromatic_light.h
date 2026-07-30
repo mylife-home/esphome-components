@@ -11,12 +11,13 @@
 namespace esphome {
 namespace mylife {
 
-class MylifeMonochromaticLight : public MylifeController {
+class MylifeMonochromaticLight : public MylifeController, public light::LightRemoteValuesListener {
 public:
   explicit MylifeMonochromaticLight(MylifeClientComponent *client, light::LightState *target);
   virtual ~MylifeMonochromaticLight() = default;
 
   virtual const PluginDefinition *get_plugin_metadata() const override;
+  virtual void on_light_remote_values_update() override;
 
 protected:
   virtual void publish_states() override;
@@ -24,7 +25,6 @@ protected:
 private:
   void on_set_active(bool value);
   void on_set_brightness(uint8_t value);
-  void on_light_change();
 
   void publish_states_(bool force);
 

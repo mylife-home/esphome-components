@@ -16,7 +16,6 @@ from esphome.const import (
     CONF_PASSWORD,
     CONF_PORT,
     CONF_REBOOT_TIMEOUT,
-    CONF_SSL_FINGERPRINTS,
     CONF_USERNAME,
     PLATFORM_BK72XX,
     PLATFORM_ESP32,
@@ -57,6 +56,11 @@ CONFIG_SCHEMA = cv.All(
 
 @coroutine_with_priority(40.0)
 async def to_code(config):
+    # we need one for the Logger class (mylife logger implementation),
+    # and another for the MylifeClientComponent class (esphome device builder debug view)
+    logger.request_log_listener()
+    logger.request_log_listener()
+
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     # Add required libraries for ESP8266 and LibreTiny
@@ -72,14 +76,6 @@ async def to_code(config):
     cg.add(var.set_password(config[CONF_PASSWORD]))
     if CONF_CLIENT_ID in config:
         cg.add(var.set_client_id(config[CONF_CLIENT_ID]))
-
-    if CONF_SSL_FINGERPRINTS in config:
-        for fingerprint in config[CONF_SSL_FINGERPRINTS]:
-            arr = [
-                cg.RawExpression(f"0x{fingerprint[i:i + 2]}") for i in range(0, 40, 2)
-            ]
-            cg.add(var.add_ssl_fingerprint(arr))
-        cg.add_build_flag("-DASYNC_TCP_SSL_ENABLED=1")
 
     cg.add(var.set_keep_alive(config[CONF_KEEPALIVE]))
     cg.add(var.set_reboot_timeout(config[CONF_REBOOT_TIMEOUT]))

@@ -39,32 +39,9 @@ static const char *mode_to_enum(climate::ClimateMode value);
 static climate::ClimateFanMode enum_to_fan_mode(const std::string &value);
 static const char *fan_mode_to_enum(climate::ClimateFanMode value);
 
-ClimateCallDebounce::ClimateCallDebounce(climate::Climate *target)
-  : climate_(target) {
-}
-
-void ClimateCallDebounce::debounced_call(std::function<void(climate::ClimateCall &)> &&f) {
-  if (this->call_) {
-    this->cancel_timeout("debounce");
-  } else {
-    this->call_.emplace(this->climate_->make_call());
-  }
-
-  f(*this->call_);
-
-  this->set_timeout("debounce", 300, [this]() {
-    this->call_->perform();
-    this->call_.reset();
-  });
-}
-
 MylifeClimate::MylifeClimate(MylifeClientComponent *client, climate::Climate *target)
   : MylifeController(client, target)
-  , climate_(target)
-  , call_(std::make_unique<ClimateCallDebounce>(target)) {
-  
-  // Not very clean :/
-  App.register_component(this->call_.get());
+  , climate_(target) {
 
   subscribe_action("setTargetTemperature", [this](const std::string &buffer) {
     this->on_set_target_temperature(static_cast<float>(Encoding::read_uint8(buffer)));
@@ -92,20 +69,35 @@ void MylifeClimate::publish_states() {
 }
 
 void MylifeClimate::on_set_target_temperature(float value) {
-  this->call_->debounced_call([value](climate::ClimateCall &call) {
+  this->debounced_call([value](climate::ClimateCall &call) {
     call.set_target_temperature(value);
   });
 }
 
 void MylifeClimate::on_set_mode(climate::ClimateMode value) {
-  this->call_->debounced_call([value](climate::ClimateCall &call) {
+  this->debounced_call([value](climate::ClimateCall &call) {
     call.set_mode(value);
   });
 }
 
 void MylifeClimate::on_set_fan_mode(climate::ClimateFanMode value) {
-  this->call_->debounced_call([value](climate::ClimateCall &call) {
+  this->debounced_call([value](climate::ClimateCall &call) {
     call.set_fan_mode(value);
+  });
+}
+
+void MylifeClimate::debounced_call(std::function<void(climate::ClimateCall &)> &&f) {
+  if (this->call_) {
+    this->cancel_timeout("debounce");
+  } else {
+    this->call_.emplace(this->climate_->make_call());
+  }
+
+  f(*this->call_);
+
+  this->set_timeout("debounce", 300, [this]() {
+    this->call_->perform();
+    this->call_.reset();
   });
 }
 

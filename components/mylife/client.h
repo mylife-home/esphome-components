@@ -161,6 +161,14 @@ class MylifeClientComponent : public Component {
   std::string build_topic(const std::string &suffix) const;
   std::string build_topic(std::initializer_list<std::string> suffix) const;
 
+  // Since this is the only component for all the mqtt controller implementation, this is the only way to access the Component API
+  // So let's proxy some of its API
+  using Component::set_interval;
+  using Component::cancel_interval;
+  using Component::set_timeout;
+  using Component::cancel_timeout;
+  using Component::defer;
+
  protected:
   /// Reconnect to the MQTT broker if not already connected.
   void start_connect_();

@@ -17,7 +17,7 @@ class OemSensor : public sensor::Sensor, public Component {
   void dump_config() override;
 
   void set_computer(oem::OemComputer *computer) { this->computer_ = computer; }
-  void set_type(SensorType type);
+  void set_type(SensorType type) { this->type_ = type; }
  protected:
    void update_current(const OemComputerData& data);
    void update_voltage(const OemComputerData& data);

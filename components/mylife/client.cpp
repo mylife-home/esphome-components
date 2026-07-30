@@ -30,6 +30,12 @@ namespace mylife {
 
 static const char *const TAG = "mylife";
 
+static const char *ip_to_cstr(const network::IPAddress *ip) {
+  static char buf[network::IP_ADDRESS_BUFFER_SIZE];
+  ip->str_to(buf);
+  return buf;
+}
+
 class Cleaner {
 public:
   explicit Cleaner(MylifeClientComponent *owner)
@@ -82,7 +88,7 @@ MylifeClientComponent::MylifeClientComponent()
  : metadata_(this)
  , logger_(this)
  , rpc_(this) {
-  this->credentials_.client_id = App.get_name() + "-" + get_mac_address() + "-mylife";
+  this->credentials_.client_id = App.get_name().str() + "-" + get_mac_address() + "-mylife";
 }
 
 void MylifeClientComponent::add_on_online_callback(std::function<void(bool)> &&callback) {
@@ -126,12 +132,13 @@ void MylifeClientComponent::setup() {
   auto stub_config = mqtt::global_mqtt_client;
 
   if (stub_config && stub_config->is_log_message_enabled() && logger::global_logger != nullptr) {
-    logger::global_logger->add_on_log_callback([this](int level, const char *tag, const char *message, size_t message_len) {
+    logger::global_logger->add_log_callback(this, [](void *self, uint8_t level, const char *tag, const char *message, size_t message_len) {
+      auto this_ = static_cast<MylifeClientComponent *>(self);
       auto stub_config = mqtt::global_mqtt_client;
 
-      if (level <= stub_config->get_log_level() && this->can_send()) {
+      if (level <= stub_config->get_log_level() && this_->can_send()) {
         const auto &log_message = stub_config->get_log_message();
-        this->publish({.topic = log_message.topic,
+        this_->publish({.topic = log_message.topic,
                        .payload = std::string(message, message_len),
                        .qos = log_message.qos,
                        .retain = log_message.retain});
@@ -149,7 +156,7 @@ void MylifeClientComponent::setup() {
 void MylifeClientComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Mylife:");
   ESP_LOGCONFIG(TAG, "  Server Address: %s:%u (%s)", this->credentials_.address.c_str(), this->credentials_.port,
-                this->ip_.str().c_str());
+                ip_to_cstr(&this->ip_));
   ESP_LOGCONFIG(TAG, "  Username: " LOG_SECRET("'%s'"), this->credentials_.username.c_str());
   ESP_LOGCONFIG(TAG, "  Client ID: " LOG_SECRET("'%s'"), this->credentials_.client_id.c_str());
   ESP_LOGCONFIG(TAG, "  Components:");
@@ -221,7 +228,7 @@ void MylifeClientComponent::check_dnslookup_() {
     return;
   }
 
-  ESP_LOGD(TAG, "Resolved broker IP address to %s", this->ip_.str().c_str());
+  ESP_LOGD(TAG, "Resolved broker IP address to %s", ip_to_cstr(&this->ip_));
   this->start_connect_();
 }
 #if defined(USE_ESP8266) && LWIP_VERSION_MAJOR == 1
@@ -616,14 +623,14 @@ void MylifeClientComponent::set_keep_alive(uint16_t keep_alive_s) { this->mqtt_b
 void MylifeClientComponent::set_rtc(time::RealTimeClock *rtc) { this->logger_.set_rtc(rtc); }
 
 std::string MylifeClientComponent::build_topic(const std::string &suffix) const {
-  return App.get_name() + "-core/" + suffix;
+  return App.get_name().str() + "-core/" + suffix;
 }
 
 std::string MylifeClientComponent::build_topic(std::initializer_list<std::string> suffix) const {
   std::ostringstream topic_builder;
 
-  topic_builder << App.get_name() << "-core";
-  for (const auto item : suffix) {
+  topic_builder << App.get_name().str() << "-core";
+  for (const auto &item : suffix) {
     topic_builder << "/" << item;
   }
 
