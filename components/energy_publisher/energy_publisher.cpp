@@ -8,8 +8,16 @@ namespace energy_publisher {
 
 static const char *const TAG = "energy_publisher";
 
+static std::string get_object_id(EntityBase *entity) {
+  std::string buf;
+  buf.resize(OBJECT_ID_MAX_LEN);
+  auto written = entity->write_object_id_to(buf.data(), buf.size());
+  buf.resize(written);
+  return buf;
+}
+
 void EnergyPublisher::setup() {
-  this->id_ = this->sensor_->get_object_id();
+  this->id_ = get_object_id(this->sensor_);
   std::replace(this->id_.begin(), this->id_.end(), '_', '-');
 
   this->sensor_->add_on_state_callback([this](float) {
