@@ -30,7 +30,8 @@ namespace mylife {
 
 static const char *const TAG = "mylife";
 
-static const char *ip_to_cstr(const network::IPAddress *ip) {
+// Only used for logging, so we can ignore the unused warning
+[[maybe_unused]] static const char *ip_to_cstr(const network::IPAddress *ip) {
   static char buf[network::IP_ADDRESS_BUFFER_SIZE];
   ip->str_to(buf);
   return buf;
