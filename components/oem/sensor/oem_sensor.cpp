@@ -37,7 +37,8 @@ void OemSensor::setup() {
   }
 }
 
-static const char *type_to_str(SensorType type) {
+// Only used for logging, so we can ignore the unused warning
+[[maybe_unused]] static const char *type_to_str(SensorType type) {
   switch(type) {
     case SensorType::CURRENT:
       return "current";
