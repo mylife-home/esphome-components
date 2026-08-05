@@ -123,7 +123,11 @@ void Metadata::publish_instance_info() {
     JsonObject versions = root["versions"].to<JsonObject>();
     versions["esphome"] = ESPHOME_VERSION;
     versions["mylife"] = MYLIFE_VERSION;
-    versions["build"] = App.get_build_time();
+
+    char build_time_buf[Application::BUILD_TIME_STR_SIZE];
+    App.get_build_time_string(build_time_buf);
+    versions["build"] = build_time_buf;
+    
 #ifdef ESPHOME_PROJECT_NAME
     versions["project"] = ESPHOME_PROJECT_NAME " " ESPHOME_PROJECT_VERSION;
 #endif
