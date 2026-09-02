@@ -116,8 +116,9 @@ void Metadata::publish_instance_info() {
     wifi["rssi"] = wifi::global_wifi_component->wifi_rssi();
 #endif
 
-    root["systemUptime"] = this->uptime_;
-    root["instanceUptime"] = this->uptime_;
+    const auto uptime = this->get_uptime();
+    root["systemUptime"] = uptime;
+    root["instanceUptime"] = uptime;
 
     JsonObject versions = root["versions"].to<JsonObject>();
     versions["esphome"] = ESPHOME_VERSION;
@@ -146,6 +147,10 @@ void Metadata::update_uptime() {
   }
   this->uptime_ &= ~ms_mask;
   this->uptime_ |= ms;
+}
+
+uint64_t Metadata::get_uptime() const {
+  return this->uptime_ / 1000ULL;
 }
 
 }  // namespace mylife
