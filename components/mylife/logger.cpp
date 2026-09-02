@@ -132,7 +132,7 @@ bool Logger::write(const Timestamp& timestamp, int level, const char *tag, const
 
   auto payload = json::build_json([&](JsonObject root) {
     root["name"] = tag;
-    root["instanceName"] = App.get_name().str();
+    root["instanceName"] = App.get_name().str() + "-core";
     root["hostname"] = App.get_name().str();
     root["pid"] = 0;
     root["level"] = this->to_level(level);
