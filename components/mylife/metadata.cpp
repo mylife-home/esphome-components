@@ -116,9 +116,8 @@ void Metadata::publish_instance_info() {
     wifi["rssi"] = wifi::global_wifi_component->wifi_rssi();
 #endif
 
-    const auto uptime = this->get_uptime();
-    root["systemUptime"] = uptime;
-    root["instanceUptime"] = uptime;
+    root["systemUptime"] = this->uptime_;
+    root["instanceUptime"] = this->uptime_;
 
     JsonObject versions = root["versions"].to<JsonObject>();
     versions["esphome"] = ESPHOME_VERSION;
@@ -147,14 +146,6 @@ void Metadata::update_uptime() {
   }
   this->uptime_ &= ~ms_mask;
   this->uptime_ |= ms;
-}
-
-float Metadata::get_uptime() const {
-  // Do separate second and milliseconds conversion to avoid floating point division errors
-  // Probably some IEEE standard already guarantees this division can be done without loss
-  // of precision in a single division, but let's do it like this to be sure.
-  const uint64_t seconds_int = this->uptime_ / 1000ULL;
-  return  float(seconds_int) + (this->uptime_ % 1000ULL) / 1000.0f;
 }
 
 }  // namespace mylife

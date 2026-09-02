@@ -40,7 +40,6 @@ private:
   void publish_instance_info();
 
   void update_uptime();
-  float get_uptime() const;
 
   MylifeClientComponent *client_;
   std::set<const PluginDefinition*> plugins_;
