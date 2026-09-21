@@ -15,6 +15,12 @@ namespace pico_epanel {
 static const char *const TAG = "pico_epanel";
 static constexpr uint16_t magic = 0x4242;
 
+// The pico drives the interrupt line open drain and holds it down until we read
+// REG_INPUTS, so the line is a level: "I have a change for you", asserted until
+// acknowledged. The edge only tells us when to look. Re-reading the level at
+// this interval costs nothing on the bus and recovers an edge we missed.
+static constexpr uint32_t LEVEL_CHECK_INTERVAL_MS = 100;
+
 // Only keep one interrupt pin instance, shared across controller if they use same pin number.
 // Else multiple init of same pin overwrite each other
 class SharedInterruptPin {
@@ -43,6 +49,17 @@ public:
     bool pending_callback = true;
     this->pending_callback_.compare_exchange_strong(pending_callback, false);
 
+    if (!pending_callback) {
+      // No edge, so look at the level instead. Rate limited: if a panel ever
+      // holds the line down without clearing it, this must not turn into a bus
+      // hammering loop.
+      const uint32_t now = millis();
+      if (now - this->last_level_check_ms_ >= LEVEL_CHECK_INTERVAL_MS) {
+        this->last_level_check_ms_ = now;
+        pending_callback = !this->pin_->digital_read();
+      }
+    }
+
     if (pending_callback) {
       this->callback_.call();
     }
@@ -56,6 +73,7 @@ private:
   CallbackManager<void()> callback_{};
   InternalGPIOPin *pin_{nullptr};
   std::atomic<bool> pending_callback_{false};
+  uint32_t last_level_check_ms_{0};
 };
 
 static std::unordered_map<uint8_t, SharedInterruptPin> interrupt_pins;
