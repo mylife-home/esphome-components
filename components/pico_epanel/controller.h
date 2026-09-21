@@ -10,6 +10,7 @@
 #pragma once
 
 #include <bitset>
+#include <optional>
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
 #include "esphome/components/i2c/i2c.h"
@@ -40,7 +41,7 @@ private:
   bool read_u16(uint8_t reg, uint16_t *value);
   bool write_u16(uint8_t reg, uint16_t value);
 
-  std::bitset<16> read_inputs();
+  std::optional<std::bitset<16>> read_inputs();
   void write_output(uint8_t index, uint8_t value);
 
   void refresh_inputs();

@@ -164,15 +164,15 @@ bool PicoEpanelController::write_u16(uint8_t reg, const uint16_t value) {
   return false;
 }
 
-std::bitset<16> PicoEpanelController::read_inputs() {
+std::optional<std::bitset<16>> PicoEpanelController::read_inputs() {
   uint16_t data;
   if (!this->read_u16(REG_INPUTS, &data)) {
-    return 0;
+    return std::nullopt;
   }
 
   ESP_LOGD(TAG, "[%s] Read inputs %hu", id_.c_str(), data);
 
-  return {data};
+  return std::bitset<16>{data};
 }
 
 
@@ -219,10 +219,14 @@ void PicoEpanelController::write_output(uint8_t index, uint8_t value) {
 void PicoEpanelController::refresh_inputs() {
   auto values = read_inputs();
 
+  if (!values) {
+    return;
+  }
+
   for (uint8_t index = 0; index < 16; ++index) {
     auto sensor = inputs_[index];
     if (sensor) {
-      sensor->publish_state(values.test(index));
+      sensor->publish_state(values->test(index));
     }
   }
 }
